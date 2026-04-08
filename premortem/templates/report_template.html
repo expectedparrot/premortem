@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pre-Mortem Analysis: {{ initiative }}</title>
+<style>
+  /* ── Reset & Base ──────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: #1a1a1a;
+    background: #fafafa;
+    line-height: 1.65;
+    font-size: 16px;
+    padding: 2rem 1rem;
+  }
+
+  .container {
+    max-width: 960px;
+    margin: 0 auto;
+  }
+
+  /* ── Typography ────────────────────────────────────────── */
+  h1, h2, h3, h4 {
+    font-family: Georgia, "Times New Roman", Times, serif;
+    color: #1a1a1a;
+    line-height: 1.3;
+  }
+
+  h1 { font-size: 2rem; margin-bottom: 0.25rem; }
+  h2 { font-size: 1.5rem; margin: 2rem 0 1rem; padding-bottom: 0.4rem; border-bottom: 2px solid #428a5f; }
+  h3 { font-size: 1.15rem; margin: 0; }
+  h4 { font-size: 1rem; margin: 0; display: inline; }
+
+  p { margin: 0.75rem 0; }
+  a { color: #428a5f; }
+
+  /* ── EP Branding Header ────────────────────────────────── */
+  .report-header {
+    border-left: 5px solid #428a5f;
+    padding-left: 1.25rem;
+    margin-bottom: 2.5rem;
+  }
+
+  .report-header .subtitle {
+    font-size: 0.95rem;
+    color: #555;
+    margin-top: 0.15rem;
+  }
+
+  .report-header .date {
+    font-size: 0.85rem;
+    color: #888;
+    margin-top: 0.25rem;
+  }
+
+  .ep-badge {
+    display: inline-block;
+    background: #428a5f;
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 0.2rem 0.6rem;
+    border-radius: 3px;
+    margin-bottom: 0.5rem;
+  }
+
+  /* ── Sections ──────────────────────────────────────────── */
+  section { margin-bottom: 2.5rem; }
+
+  /* ── Callout boxes ─────────────────────────────────────── */
+  .callout {
+    border-left: 4px solid #ccc;
+    padding: 1rem 1.25rem;
+    background: #f5f5f5;
+    border-radius: 0 6px 6px 0;
+    margin: 1rem 0;
+  }
+
+  .callout-failure {
+    border-left-color: #c0392b;
+    background: #fdf2f2;
+  }
+
+  .callout-failure strong { color: #c0392b; }
+
+  /* ── Methodology steps ─────────────────────────────────── */
+  .methodology-grid {
+    display: grid;
+    grid-template-columns: 2.5rem 1fr;
+    gap: 0.5rem 0.75rem;
+    align-items: start;
+    margin-top: 1rem;
+  }
+
+  .step-num {
+    width: 2rem;
+    height: 2rem;
+    background: #428a5f;
+    color: #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+  }
+
+  .step-text { padding-top: 0.2rem; }
+  .step-text .detail { color: #555; font-size: 0.9rem; margin-top: 0.15rem; }
+
+  /* ── Persona cards ─────────────────────────────────────── */
+  .count-badge {
+    display: inline-block;
+    background: #e8f5e9;
+    color: #2e7d32;
+    font-weight: 700;
+    padding: 0.2rem 0.7rem;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+  }
+
+  .persona-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1rem;
+    margin-top: 0.75rem;
+  }
+
+  .persona-card {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 1rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+
+  .persona-name { font-weight: 700; font-size: 1rem; margin-bottom: 0.15rem; }
+  .persona-role { color: #428a5f; font-size: 0.85rem; font-weight: 600; }
+  .persona-perspective { color: #555; font-size: 0.85rem; margin-top: 0.4rem; }
+
+  /* ── Narrative groups (reasons, mitigations, research) ── */
+  .narrative-group {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+
+  .narrative-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .role-tag {
+    font-size: 0.75rem;
+    background: #e8f5e9;
+    color: #2e7d32;
+    padding: 0.15rem 0.5rem;
+    border-radius: 10px;
+    white-space: nowrap;
+  }
+
+  .narrative { padding: 0.5rem 0; color: #333; }
+  .narrative p { margin: 0.5rem 0; }
+
+  details { margin-top: 0.5rem; }
+  details summary {
+    cursor: pointer;
+    user-select: none;
+    padding: 0.35rem 0;
+    color: #428a5f;
+  }
+  details summary:hover { text-decoration: underline; }
+
+  /* ── Causal graph ──────────────────────────────────────── */
+  .mermaid {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin: 1rem 0;
+    overflow-x: auto;
+  }
+
+  .graph-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+    font-size: 0.9rem;
+  }
+
+  .graph-table th {
+    background: #428a5f;
+    color: #fff;
+    text-align: left;
+    padding: 0.5rem 0.75rem;
+    font-weight: 600;
+  }
+
+  .graph-table th:first-child { border-radius: 6px 0 0 0; }
+  .graph-table th:last-child  { border-radius: 0 6px 0 0; }
+
+  .graph-table td {
+    padding: 0.45rem 0.75rem;
+    border-bottom: 1px solid #eee;
+  }
+
+  .graph-table tr:hover { background: #f9f9f9; }
+  .graph-table .num { text-align: center; }
+
+  .type-root     { background: #fde68a; color: #92400e; padding: 0.1rem 0.5rem; border-radius: 8px; font-size: 0.8rem; }
+  .type-terminal { background: #fca5a5; color: #991b1b; padding: 0.1rem 0.5rem; border-radius: 8px; font-size: 0.8rem; }
+  .type-mid      { background: #e0e7ff; color: #3730a3; padding: 0.1rem 0.5rem; border-radius: 8px; font-size: 0.8rem; }
+
+  /* ── Description text ──────────────────────────────────── */
+  .description { color: #444; font-size: 0.95rem; }
+
+  /* ── Print styles ──────────────────────────────────────── */
+  @media print {
+    body { background: #fff; padding: 0; font-size: 11pt; }
+    .container { max-width: 100%; }
+    .report-header { border-left-color: #428a5f !important; }
+    h2 { break-after: avoid; }
+    .narrative-group, .persona-card { break-inside: avoid; }
+    details { open: true; }
+    details[open] summary { display: none; }
+    .mermaid { border: 1px solid #ccc; }
+    .ep-badge { background: #428a5f !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .step-num { background: #428a5f !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .graph-table th { background: #428a5f !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .count-badge, .role-tag, .type-root, .type-terminal, .type-mid {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- 1. Title Header -->
+  <header class="report-header">
+    <div class="ep-badge">Expected Parrot &middot; Pre-Mortem</div>
+    <h1>{{ initiative }}</h1>
+    <div class="subtitle">Prospective Hindsight Analysis</div>
+    <div class="date">{{ date }}</div>
+  </header>
+
+  <!-- 2. Executive Summary -->
+  <section>
+    <h2>Executive Summary</h2>
+    {{ executive_summary }}
+  </section>
+
+  <!-- 3. The Initiative -->
+  <section>
+    <h2>The Initiative</h2>
+    <p class="description">{{ description }}</p>
+    <div class="callout callout-failure">
+      <strong>Assumed failure:</strong> {{ failure_statement }}
+    </div>
+  </section>
+
+  <!-- 4. Methodology -->
+  <section>
+    <h2>Methodology</h2>
+    <div class="methodology-grid">
+      {{ methodology_steps }}
+    </div>
+  </section>
+
+  <!-- 5. Personas -->
+  <section>
+    <h2>Personas</h2>
+    <div class="count-badge">{{ persona_count }} stakeholder personas</div>
+    <div class="persona-grid">
+      {{ persona_cards }}
+    </div>
+  </section>
+
+  <!-- 6. Failure Analysis -->
+  <section>
+    <h2>Failure Analysis</h2>
+    {{ reason_sections }}
+  </section>
+
+  <!-- 7. Causal Graph -->
+  <section>
+    <h2>Causal Graph</h2>
+    <p class="description">{{ node_count }} nodes, {{ edge_count }} edges</p>
+    <div class="mermaid">
+{{ mermaid_graph }}
+    </div>
+    <table class="graph-table">
+      <thead>
+        <tr><th>ID</th><th>Label</th><th>Type</th><th>In</th><th>Out</th></tr>
+      </thead>
+      <tbody>
+        {{ graph_table_rows }}
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 8. Mitigations -->
+  <section>
+    <h2>Mitigations</h2>
+    {{ mitigation_sections }}
+  </section>
+
+  <!-- 9. Research Agenda -->
+  <section>
+    <h2>Research Agenda</h2>
+    {{ research_agenda_sections }}
+  </section>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'neutral',
+    securityLevel: 'loose',
+    flowchart: { curve: 'basis', useMaxWidth: true }
+  });
+</script>
+</body>
+</html>

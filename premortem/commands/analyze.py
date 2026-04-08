@@ -654,12 +654,15 @@ def analyze_report(
         if pid:
             research_by_p[pid] = r.get("text", "")
 
-    # Template path
+    # Template path — prefer user-provided, fall back to bundled default
     template_path = out_dir / "report_template.html"
     if not template_path.exists():
-        typer.echo(f"Template not found at {template_path}. Using built-in.", err=True)
-        typer.echo("Copy report_template.html to .premortem/output/ for custom styling.", err=True)
-        raise typer.Exit(1)
+        builtin = Path(__file__).resolve().parent.parent / "templates" / "report_template.html"
+        if not builtin.exists():
+            typer.echo("No report template found.", err=True)
+            raise typer.Exit(1)
+        typer.echo("Using built-in template. Copy report_template.html to .premortem/output/ for custom styling.", err=True)
+        template_path = builtin
 
     template = template_path.read_text()
 
