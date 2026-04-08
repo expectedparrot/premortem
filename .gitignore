@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Pre-mortem project data (generated per-run)
+.premortem/
+
+# Claude Code skill directory (not part of the package)
+.claude/
+
+# Examples project data
+examples/**/.premortem/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
