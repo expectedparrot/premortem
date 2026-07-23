@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Premortem is a structured pre-mortem failure analysis CLI.">
+  <title>premortem — failure analysis before commitment</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #17211b;
+      --muted: #5c6860;
+      --paper: #f5f1e8;
+      --card: #fffdf7;
+      --accent: #cb4b32;
+      --line: #d9d2c3;
+      --code: #202a24;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 80% 5%, #e7d5b8 0, transparent 28rem),
+        var(--paper);
+      font: 17px/1.65 ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    a { color: inherit; }
+    .wrap { width: min(1080px, calc(100% - 2.5rem)); margin: auto; }
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.25rem 0;
+      font-size: .92rem;
+    }
+    nav strong { letter-spacing: -.02em; }
+    nav a { text-decoration: none; }
+    nav .links { display: flex; gap: 1.25rem; color: var(--muted); }
+    header { padding: 6rem 0 7rem; }
+    .eyebrow {
+      color: var(--accent);
+      font-size: .78rem;
+      font-weight: 800;
+      letter-spacing: .13em;
+      text-transform: uppercase;
+    }
+    h1, h2, h3 {
+      margin: 0;
+      font-family: ui-serif, Georgia, Cambria, "Times New Roman", serif;
+      line-height: 1.08;
+      letter-spacing: -.035em;
+    }
+    h1 { max-width: 850px; margin-top: 1rem; font-size: clamp(3.2rem, 8vw, 7rem); }
+    h1 em { color: var(--accent); font-weight: inherit; }
+    .lede {
+      max-width: 690px;
+      margin: 2rem 0;
+      color: var(--muted);
+      font-size: clamp(1.1rem, 2vw, 1.35rem);
+    }
+    .actions { display: flex; flex-wrap: wrap; gap: .75rem; }
+    .button {
+      display: inline-block;
+      padding: .72rem 1.05rem;
+      border: 1px solid var(--ink);
+      border-radius: 999px;
+      text-decoration: none;
+      font-size: .92rem;
+      font-weight: 700;
+    }
+    .button.primary { color: var(--paper); background: var(--ink); }
+    section { padding: 5.5rem 0; border-top: 1px solid var(--line); }
+    h2 { max-width: 740px; font-size: clamp(2.2rem, 5vw, 4.2rem); }
+    .section-intro { max-width: 690px; margin: 1.4rem 0 3rem; color: var(--muted); }
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+    .card {
+      min-height: 190px;
+      padding: 1.5rem;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: color-mix(in srgb, var(--card) 90%, transparent);
+    }
+    .card .number { color: var(--accent); font: 700 .8rem/1 ui-monospace, monospace; }
+    .card h3 { margin: 2rem 0 .7rem; font-size: 1.45rem; }
+    .card p { margin: 0; color: var(--muted); font-size: .95rem; }
+    pre {
+      overflow-x: auto;
+      margin: 2.5rem 0 0;
+      padding: 1.5rem;
+      border-radius: 12px;
+      color: #eef4ef;
+      background: var(--code);
+      font: .9rem/1.8 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    code span { color: #e7aa6d; }
+    .outcome {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 3rem;
+      align-items: start;
+    }
+    .outcome ul { margin: 0; padding: 0; list-style: none; }
+    .outcome li { padding: .9rem 0; border-bottom: 1px solid var(--line); }
+    footer {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 2rem 0 4rem;
+      color: var(--muted);
+      font-size: .85rem;
+    }
+    @media (max-width: 760px) {
+      header { padding: 4rem 0 5rem; }
+      .grid, .outcome { grid-template-columns: 1fr; }
+      nav .links a:not(:last-child) { display: none; }
+      footer { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="wrap" aria-label="Primary navigation">
+    <strong>premortem</strong>
+    <div class="links">
+      <a href="#method">Method</a>
+      <a href="#quickstart">Quickstart</a>
+      <a href="https://github.com/expectedparot/premortem">GitHub ↗</a>
+    </div>
+  </nav>
+
+  <header class="wrap">
+    <div class="eyebrow">Prospective hindsight, made operational</div>
+    <h1>Imagine failure. <em>Then prevent it.</em></h1>
+    <p class="lede">
+      premortem is a structured CLI workflow for finding plausible failure paths,
+      mapping their causes, and turning uncertainty into mitigations and research.
+    </p>
+    <div class="actions">
+      <a class="button primary" href="#quickstart">Get started</a>
+      <a class="button" href="https://github.com/expectedparot/premortem">View source</a>
+    </div>
+  </header>
+
+  <main>
+    <section id="method">
+      <div class="wrap">
+        <div class="eyebrow">The method</div>
+        <h2>A disciplined path from imagined failure to better decisions.</h2>
+        <p class="section-intro">
+          The workflow uses stakeholder perspectives and causal reasoning—not a
+          generic risk checklist. Explicit review points keep the analysis legible.
+        </p>
+        <div class="grid">
+          <article class="card">
+            <div class="number">01</div>
+            <h3>Define failure</h3>
+            <p>Write a vivid, completed-fact statement focused on consequences rather than causes.</p>
+          </article>
+          <article class="card">
+            <div class="number">02</div>
+            <h3>Broaden the view</h3>
+            <p>Use distinct stakeholder personas to surface operational, customer, technical, and strategic failure stories.</p>
+          </article>
+          <article class="card">
+            <div class="number">03</div>
+            <h3>Trace the system</h3>
+            <p>Turn reasons into a compact causal graph showing where root causes converge and amplify one another.</p>
+          </article>
+          <article class="card">
+            <div class="number">04</div>
+            <h3>Score what matters</h3>
+            <p>Evaluate important nodes by severity, controllability, uncertainty, and available evidence.</p>
+          </article>
+          <article class="card">
+            <div class="number">05</div>
+            <h3>Break the pathways</h3>
+            <p>Attach concrete, owned, time-bound mitigations to the graph nodes they are designed to change.</p>
+          </article>
+          <article class="card">
+            <div class="number">06</div>
+            <h3>Test assumptions</h3>
+            <p>Convert unresolved uncertainty into a focused research agenda before the final commitment.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="quickstart">
+      <div class="wrap">
+        <div class="eyebrow">Quickstart</div>
+        <h2>Run the workflow from your terminal.</h2>
+        <pre><code><span># Install the package in development mode</span>
+python -m pip install -e .
+
+<span># Start with a concrete imagined failure</span>
+premortem init product_launch \
+  --failure "It is six months after launch. Adoption is below 10%, support costs have doubled, and key customers have left."
+
+<span># Check state and move through the analysis</span>
+premortem status
+premortem analyze personas
+premortem analyze reasons
+premortem graph build
+premortem score nodes
+premortem analyze mitigations
+premortem analyze research
+premortem report generate</code></pre>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap outcome">
+        <div>
+          <div class="eyebrow">The output</div>
+          <h2>A decision aid, not a prediction.</h2>
+        </div>
+        <ul>
+          <li>Plausible, stakeholder-specific failure mechanisms</li>
+          <li>A readable causal graph of dangerous pathways</li>
+          <li>Concrete mitigations tied to graph nodes</li>
+          <li>Research questions that can change the decision</li>
+          <li>A final report with evidence and recommendations</li>
+        </ul>
+      </div>
+    </section>
+  </main>
+
+  <footer class="wrap">
+    <span>premortem · structured failure analysis</span>
+    <span>Think backward. Decide forward.</span>
+  </footer>
+</body>
+</html>
