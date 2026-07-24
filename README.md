@@ -117,8 +117,8 @@ Fallback: if mitigations are too broad, rewrite them as concrete actions with ow
 premortem produces:
 
 - `.premortem/` project state with failure statement, personas, reasons, causal graph, scores, mitigations, research agenda, and report artifacts.
-- Generated EDSL job scripts for persona/reason/mitigation/research/summary phases when using AI-assisted analysis.
-- Ingested results from generated jobs.
+- Portable, model-free EDSL `Jobs` packages for persona/reason/mitigation/research/summary phases.
+- EDSL `Results` packages run explicitly with `ep run` and ingested into project state.
 - Workflow/status output with current phase and next steps.
 - Final reports summarizing failure modes, causal structure, mitigations, and research priorities.
 
@@ -128,14 +128,14 @@ premortem produces:
 Canonical sequence:
 
 1. `premortem init` — create the project and failure statement.
-2. `premortem persona ...` or `premortem analyze personas` — define stakeholder personas.
+2. `premortem persona ...` or `premortem job generate personas` — define or package stakeholder personas.
 3. Review personas with the user before proceeding.
-4. `premortem reason ...` or `premortem analyze reasons` — elicit failure reasons.
+4. `premortem reason ...` or `premortem job generate reasons` — define or package failure-reason elicitation.
 5. Review and cluster reasons; remove duplicates or generic entries.
 6. `premortem graph ...` — build causal links among reasons.
 7. `premortem score ...` — score important nodes.
-8. `premortem mitigate ...` or `premortem analyze mitigations` — generate mitigations.
-9. `premortem analyze research-agenda` — create a research agenda for unresolved uncertainties.
+8. `premortem mitigate ...` or `premortem job generate mitigations` — define or package mitigation elicitation.
+9. `premortem job generate research-agenda` — package research-agenda elicitation.
 10. `premortem report ...` — render final outputs.
 
 Use `premortem status` and `premortem workflow` whenever resuming or after generated job ingestion.
@@ -158,10 +158,14 @@ Agent: "I’ll create stakeholder personas for customer admin, end user, support
 premortem init --initiative "Analytics launch" --failure "It is six months after launch, and the analytics feature failed because adoption stayed below 10%."
 premortem persona add --name customer_admin --role "Customer admin"
 premortem persona add --name support_lead --role "Support lead"
-premortem analyze reasons --domain "analytics setup, support capacity, adoption targets" --good-example "Admins cannot map existing roles during setup, so pilot accounts never invite end users."
+premortem job generate reasons --domain "analytics setup, support capacity, adoption targets" --good-example "Admins cannot map existing roles during setup, so pilot accounts never invite end users." --output jobs/reasons.jobs.ep
+ep run jobs/reasons.jobs.ep --model <model-name> --output jobs/reasons-results.ep
+premortem ingest reasons --from jobs/reasons-results.ep
 premortem graph add-node --label "A concrete cause" --reason r001
 premortem score set --node n001 --likelihood high --impact high
-premortem analyze mitigations --good-example "Before launch, the owner runs a five-account migration pilot."
+premortem job generate mitigations --good-example "Before launch, the owner runs a five-account migration pilot." --output jobs/mitigations.jobs.ep
+ep run jobs/mitigations.jobs.ep --model <model-name> --output jobs/mitigations-results.ep
+premortem ingest mitigations --from jobs/mitigations-results.ep
 premortem report generate
 ```
 
@@ -172,10 +176,10 @@ Output: stakeholder-specific failure reasons, causal graph, scored risks, mitiga
 
 ```bash
 premortem status
-premortem ingest --phase reasons --path jobs/reasons_results.json
+premortem ingest reasons --from jobs/reasons-results.ep
 premortem workflow next
 premortem reason list
-premortem graph show
+premortem graph list
 ```
 
 Output: updated project state and next-step guidance after AI-assisted outputs are ingested.
@@ -195,9 +199,9 @@ For full options, run `premortem <subcommand> --help`.
 | `premortem graph ...` | Build and inspect causal graphs. |
 | `premortem score ...` | Score causal graph nodes. |
 | `premortem mitigate ...` | Manage mitigations. |
-| `premortem analyze ...` | Run AI-assisted personas, reasons, mitigations, research, summary, or report phases. |
-| `premortem job ...` | Generate auditable EDSL job scripts. |
-| `premortem ingest ...` | Ingest generated job results. |
+| `premortem analyze report` | Generate the standalone HTML report. |
+| `premortem job generate ...` | Build portable, model-free EDSL Jobs `.ep` packages. |
+| `premortem ingest ...` | Ingest EDSL Results `.ep` packages. |
 | `premortem report ...` | Generate final reports. |
 | `premortem docs` | Read built-in guidance. |
 
@@ -220,7 +224,7 @@ For full options, run `premortem <subcommand> --help`.
 ## State contract
 <!-- id: premortem/state -->
 
-`.premortem/` stores project metadata, personas, reasons, graph nodes/edges, scores, mitigations, research agenda, generated job records, ingested results, and report artifacts. The CLI-managed project state is the source of truth; generated job scripts and rendered reports are derived artifacts.
+`.premortem/` stores project metadata, personas, reasons, graph nodes/edges, scores, mitigations, research agenda, ingested results, and report artifacts. The CLI-managed project state is the source of truth; portable EDSL Jobs/Results packages and rendered reports are derived artifacts.
 
 ## JSON output and error codes
 <!-- id: premortem/json -->

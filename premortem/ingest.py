@@ -13,7 +13,76 @@ RATING_NUMERIC = {"low": 1, "medium": 2, "high": 3}
 NUMERIC_RATING = {1: "low", 2: "medium", 3: "high"}
 
 
-def load_results_file(path: Path) -> dict:
+def _load_ep_results(path: Path, entity_type: str) -> dict:
+    try:
+        from edsl import Results
+        results = Results.git.load(path)
+    except ImportError as exc:
+        raise PremortemError("DEPENDENCY_ERROR", "EDSL is required to load .ep Results.") from exc
+    except Exception as exc:
+        raise PremortemError("VALIDATION_FAILED", "Unable to load EDSL Results.", context=f"{path}: {exc}") from exc
+
+    question_names = set(results.survey.question_names)
+    rows: list[dict] = []
+    if entity_type == "personas":
+        if "personas" not in question_names:
+            raise PremortemError("VALIDATION_FAILED", "Results do not contain the personas question.")
+        raw = results.select("answer.personas").to_dicts(remove_prefix=True)
+        for item in raw[0].get("personas", []) if raw else []:
+            parts = [part.strip() for part in str(item).split("|")]
+            if len(parts) >= 2:
+                rows.append({
+                    "persona_name": parts[0],
+                    "role": parts[1],
+                    "perspective": " | ".join(parts[2:]) if len(parts) > 2 else "",
+                })
+    elif entity_type == "reasons":
+        required = {"episodic_reasons", "structural_reasons"}
+        if not required.issubset(question_names):
+            raise PremortemError("VALIDATION_FAILED", "Results do not contain the reason questions.")
+        raw = results.select(
+            "agent.agent_name", "answer.episodic_reasons", "answer.structural_reasons"
+        ).to_dicts(remove_prefix=True)
+        rows = [{
+            "persona": item.get("agent_name", ""),
+            "episodic_reasons": [item.get("episodic_reasons", "")],
+            "structural_reasons": [item.get("structural_reasons", "")],
+        } for item in raw]
+    elif entity_type == "mitigations":
+        if "mitigations" not in question_names:
+            raise PremortemError("VALIDATION_FAILED", "Results do not contain the mitigations question.")
+        raw = results.select("agent.agent_name", "answer.mitigations").to_dicts(remove_prefix=True)
+        rows = [{
+            "persona_name": item.get("agent_name", ""),
+            "text": item.get("mitigations", ""),
+        } for item in raw]
+    elif entity_type == "research_agenda":
+        if "research_agenda" not in question_names:
+            raise PremortemError("VALIDATION_FAILED", "Results do not contain the research agenda question.")
+        raw = results.select("agent.agent_name", "answer.research_agenda").to_dicts(remove_prefix=True)
+        rows = [{
+            "persona_name": item.get("agent_name", ""),
+            "text": item.get("research_agenda", ""),
+        } for item in raw]
+    elif entity_type == "executive_summary":
+        if "executive_summary" not in question_names:
+            raise PremortemError("VALIDATION_FAILED", "Results do not contain the executive summary question.")
+        raw = results.select("answer.executive_summary").to_dicts(remove_prefix=True)
+        return {
+            "entity_type": entity_type,
+            "text": raw[0].get("executive_summary", "") if raw else "",
+            "rows": [],
+        }
+    else:
+        raise PremortemError("VALIDATION_FAILED", "Unsupported EDSL Results entity type.", context=entity_type)
+    return {"entity_type": entity_type, "rows": rows}
+
+
+def load_results_file(path: Path, entity_type: str | None = None) -> dict:
+    if path.suffix == ".ep":
+        if entity_type is None:
+            raise PremortemError("VALIDATION_FAILED", "An entity type is required for .ep Results.", context=str(path))
+        return _load_ep_results(path, entity_type)
     try:
         data = json.loads(path.read_text())
     except FileNotFoundError as exc:

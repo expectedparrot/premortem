@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import typer
@@ -33,7 +34,7 @@ def ingest_personas_cmd(
     store = store_for(project_dir)
     try:
         store.require_project()
-        data = load_results_file(from_file)
+        data = load_results_file(from_file, "personas")
         if data["entity_type"] != "personas":
             raise PremortemError("VALIDATION_FAILED", f"Expected entity_type 'personas', got '{data['entity_type']}'.")
         if replace:
@@ -72,7 +73,7 @@ def ingest_reasons_cmd(
     store = store_for(project_dir)
     try:
         store.require_project()
-        data = load_results_file(from_file)
+        data = load_results_file(from_file, "reasons")
         if data["entity_type"] != "reasons":
             raise PremortemError("VALIDATION_FAILED", f"Expected entity_type 'reasons', got '{data['entity_type']}'.")
         if replace:
@@ -120,7 +121,7 @@ def ingest_scores_cmd(
     store = store_for(project_dir)
     try:
         store.require_project()
-        data = load_results_file(from_file)
+        data = load_results_file(from_file, "scores")
         if data["entity_type"] != "scores":
             raise PremortemError("VALIDATION_FAILED", f"Expected entity_type 'scores', got '{data['entity_type']}'.")
         if replace:
@@ -159,7 +160,7 @@ def ingest_mitigations_cmd(
     store = store_for(project_dir)
     try:
         store.require_project()
-        data = load_results_file(from_file)
+        data = load_results_file(from_file, "mitigations")
         if data["entity_type"] != "mitigations":
             raise PremortemError("VALIDATION_FAILED", f"Expected entity_type 'mitigations', got '{data['entity_type']}'.")
         if replace:
@@ -183,3 +184,58 @@ def ingest_mitigations_cmd(
         for m in created:
             tbl.add_row(m.id, ", ".join(m.node_ids), m.text[:60])
         console.print(tbl)
+
+
+@app.command("research-agenda")
+def ingest_research_agenda_cmd(
+    from_file: Path = typer.Option(..., "--from", help="Path to EDSL Results .ep file."),
+    project_dir: Path | None = ProjectDirOption,
+    human: bool = HumanOption,
+    quiet: bool = QuietOption,
+) -> None:
+    command = "ingest research-agenda"
+    json_flag = should_emit_json(human)
+    store = store_for(project_dir)
+    try:
+        store.require_project()
+        data = load_results_file(from_file, "research_agenda")
+        persona_ids = {persona.name: persona.id for persona in store.list_personas()}
+        for row in data["rows"]:
+            row["persona_id"] = persona_ids.get(row.get("persona_name", ""))
+        output = store.root / "output" / "results_research_agenda.json"
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(json.dumps(data, indent=2) + "\n")
+    except PremortemError as err:
+        fail(command, err, json_flag)
+    payload = {"rows": len(data["rows"]), "output_path": str(output), "source_results": str(from_file)}
+    if json_flag:
+        finish(command, payload, True, quiet)
+        return
+    if not quiet:
+        render_kv_panel("Research agenda ingested", [("Rows", str(len(data["rows"]))), ("Output", str(output))])
+
+
+@app.command("summary")
+def ingest_summary_cmd(
+    from_file: Path = typer.Option(..., "--from", help="Path to EDSL Results .ep file."),
+    project_dir: Path | None = ProjectDirOption,
+    human: bool = HumanOption,
+    quiet: bool = QuietOption,
+) -> None:
+    command = "ingest summary"
+    json_flag = should_emit_json(human)
+    store = store_for(project_dir)
+    try:
+        store.require_project()
+        data = load_results_file(from_file, "executive_summary")
+        output = store.root / "output" / "results_exec_summary.json"
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(json.dumps(data, indent=2) + "\n")
+    except PremortemError as err:
+        fail(command, err, json_flag)
+    payload = {"output_path": str(output), "source_results": str(from_file), "text": data["text"]}
+    if json_flag:
+        finish(command, payload, True, quiet, next_steps=["premortem analyze report"])
+        return
+    if not quiet:
+        render_kv_panel("Executive summary ingested", [("Output", str(output))])

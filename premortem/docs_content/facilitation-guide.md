@@ -72,20 +72,22 @@ premortem docs show failure-statement
 
 ### 2. Generate And Ingest Personas
 
-Generate an auditable EDSL script:
+Build a portable, model-free EDSL Jobs package:
 
 ```bash
 premortem job generate personas \
   --context "<domain expert perspective>" \
   --requirements "<role 1>,<role 2>,<role 3>,<role 4>,<role 5>" \
-  --output jobs/run_personas.py
+  --output jobs/personas.jobs.ep
 ```
 
 Run and ingest:
 
 ```bash
-python jobs/run_personas.py
-premortem ingest personas --from .premortem/output/results_personas.json
+ep inspect jobs/personas.jobs.ep
+ep jobs cost jobs/personas.jobs.ep
+ep run jobs/personas.jobs.ep --model <model-name> --output jobs/personas-results.ep
+premortem ingest personas --from jobs/personas-results.ep
 premortem persona list --human
 ```
 
@@ -101,14 +103,15 @@ you expect.
 premortem job generate reasons \
   --domain "<specific systems, dates, offices, budgets, stakeholders>" \
   --good-example "<specific failure chain grounded in the domain>" \
-  --output jobs/run_reasons.py
+  --output jobs/reasons.jobs.ep
 ```
 
 Run and ingest:
 
 ```bash
-python jobs/run_reasons.py
-premortem ingest reasons --from .premortem/output/results_reasons.json
+ep inspect jobs/reasons.jobs.ep
+ep run jobs/reasons.jobs.ep --model <model-name> --output jobs/reasons-results.ep
+premortem ingest reasons --from jobs/reasons-results.ep
 premortem reason list --human
 ```
 
@@ -145,14 +148,15 @@ Mitigations should name node IDs and specify who does what by when.
 ```bash
 premortem job generate mitigations \
   --good-example "<specific action that targets n001 by owner and date>" \
-  --output jobs/run_mitigations.py
+  --output jobs/mitigations.jobs.ep
 ```
 
 Run and ingest:
 
 ```bash
-python jobs/run_mitigations.py
-premortem ingest mitigations --from .premortem/output/results_mitigations.json
+ep inspect jobs/mitigations.jobs.ep
+ep run jobs/mitigations.jobs.ep --model <model-name> --output jobs/mitigations-results.ep
+premortem ingest mitigations --from jobs/mitigations-results.ep
 premortem mitigate list --human
 ```
 
@@ -165,27 +169,17 @@ The research agenda identifies assumptions that are important, uncertain, and
 testable before launch.
 
 ```bash
-premortem job generate research-agenda --output jobs/run_research_agenda.py
-python jobs/run_research_agenda.py
-```
-
-This writes:
-
-```text
-.premortem/output/results_research_agenda.json
+premortem job generate research-agenda --output jobs/research-agenda.jobs.ep
+ep run jobs/research-agenda.jobs.ep --model <model-name> --output jobs/research-agenda-results.ep
+premortem ingest research-agenda --from jobs/research-agenda-results.ep
 ```
 
 ### 7. Generate The Executive Summary
 
 ```bash
-premortem job generate summary --output jobs/run_summary.py
-python jobs/run_summary.py
-```
-
-This writes:
-
-```text
-.premortem/output/results_exec_summary.json
+premortem job generate summary --output jobs/summary.jobs.ep
+ep run jobs/summary.jobs.ep --model <model-name> --output jobs/summary-results.ep
+premortem ingest summary --from jobs/summary-results.ep
 ```
 
 ### 8. Generate Reports

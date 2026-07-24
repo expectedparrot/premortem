@@ -55,15 +55,16 @@ def _next_action(command: str) -> dict[str, Any]:
     import shlex
 
     argv = shlex.split(command)
+    runs_model = len(argv) >= 2 and argv[0] == "ep" and argv[1] == "run"
     return {
         "label": f"Run `{command}`",
         "command": argv,
-        "mutates_state": any(
+        "mutates_state": runs_model or any(
             token in {"init", "add", "edit", "rename", "delete", "build", "ingest", "generate", "analyze"}
             for token in argv
         ),
-        "requires_network": "analyze" in argv,
-        "requires_user_approval": False,
+        "requires_network": runs_model,
+        "requires_user_approval": runs_model,
     }
 
 
