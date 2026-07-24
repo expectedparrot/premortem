@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import sys
+
+import click
 import typer
 
 from .commands.agent_end import app as agent_end_app
@@ -17,6 +20,8 @@ from .commands.report import app as report_app
 from .commands.score import app as score_app
 from .commands.status import app as status_app
 from .commands.workflow import app as workflow_app
+from .renderer import emit_json
+from .store import PremortemError, error_envelope
 
 app = typer.Typer(help="Gary Klein style pre-mortem analysis CLI.")
 app.add_typer(agent_end_app)
@@ -37,7 +42,49 @@ app.add_typer(workflow_app, name="workflow")
 
 
 def main() -> None:
-    app()
+    try:
+        app(standalone_mode=False)
+    except click.exceptions.Exit as exc:
+        raise SystemExit(exc.exit_code) from None
+    except click.ClickException as exc:
+        emit_json(
+            error_envelope(
+                "cli",
+                PremortemError(
+                    "CLI_USAGE",
+                    exc.format_message(),
+                    context=" ".join(sys.argv[1:]),
+                    hint="Run `premortem --help` or `<command> --help`.",
+                ),
+            )
+        )
+        raise SystemExit(exc.exit_code) from None
+    except Exception as exc:
+        if type(exc).__name__ in {"UsageError", "BadParameter", "MissingParameter", "NoSuchOption"}:
+            emit_json(
+                error_envelope(
+                    "cli",
+                    PremortemError(
+                        "CLI_USAGE",
+                        str(exc),
+                        context=" ".join(sys.argv[1:]),
+                        hint="Run `premortem --help` or `<command> --help`.",
+                    ),
+                )
+            )
+            raise SystemExit(getattr(exc, "exit_code", 2)) from None
+        emit_json(
+            error_envelope(
+                "cli",
+                PremortemError(
+                    "INTERNAL_ERROR",
+                    "Unexpected internal error.",
+                    context=f"{type(exc).__name__}: {exc}",
+                    hint="Rerun the command and report this envelope if the error persists.",
+                ),
+            )
+        )
+        raise SystemExit(1) from None
 
 
 if __name__ == "__main__":

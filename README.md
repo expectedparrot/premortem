@@ -5,6 +5,23 @@
 
 premortem runs a Gary Klein-style pre-mortem workflow for decisions, launches, projects, and strategies: define the imagined failure, generate stakeholder personas, elicit failure reasons, build a causal graph, score nodes, create mitigations, form a research agenda, and render a report. The agent uses it as an active facilitator, stopping at approval checkpoints before escalating from imagined failure to mitigations and final recommendations.
 
+## Output contract
+
+Commands emit one JSON envelope by default:
+
+```json
+{
+  "schema_version": "1.0",
+  "ok": true,
+  "command": ["status"],
+  "data": {},
+  "warnings": [],
+  "next_actions": []
+}
+```
+
+Failures set `ok` to `false`, replace `data` with a structured `error`, and exit nonzero. Use `--human` for interactive Rich output.
+
 ## When to use this
 <!-- id: premortem/when-to-use -->
 
@@ -118,7 +135,7 @@ Canonical sequence:
 6. `premortem graph ...` — build causal links among reasons.
 7. `premortem score ...` — score important nodes.
 8. `premortem mitigate ...` or `premortem analyze mitigations` — generate mitigations.
-9. `premortem analyze research` — create a research agenda for unresolved uncertainties.
+9. `premortem analyze research-agenda` — create a research agenda for unresolved uncertainties.
 10. `premortem report ...` — render final outputs.
 
 Use `premortem status` and `premortem workflow` whenever resuming or after generated job ingestion.
@@ -138,13 +155,13 @@ User: "Yes, adoption below 10% is the main failure."
 Agent: "I’ll create stakeholder personas for customer admin, end user, support, sales, engineering, and skeptical executive. After you approve those, I’ll elicit failure reasons and build the causal graph before proposing mitigations."
 
 ```bash
-premortem init analytics_launch --failure "It is six months after launch, and the analytics feature failed because adoption stayed below 10%."
+premortem init --initiative "Analytics launch" --failure "It is six months after launch, and the analytics feature failed because adoption stayed below 10%."
 premortem persona add --name customer_admin --role "Customer admin"
 premortem persona add --name support_lead --role "Support lead"
-premortem analyze reasons
-premortem graph build
-premortem score nodes
-premortem analyze mitigations
+premortem analyze reasons --domain "analytics setup, support capacity, adoption targets" --good-example "Admins cannot map existing roles during setup, so pilot accounts never invite end users."
+premortem graph add-node --label "A concrete cause" --reason r001
+premortem score set --node n001 --likelihood high --impact high
+premortem analyze mitigations --good-example "Before launch, the owner runs a five-account migration pilot."
 premortem report generate
 ```
 

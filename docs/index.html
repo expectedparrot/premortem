@@ -37,6 +37,7 @@
   <div class="book-title">Failure Analysis<br>with Premortem</div>
   <div class="part">Foundations</div>
   <a href="#orientation">1. Orientation</a>
+  <a href="#output-contract">JSON output contract</a>
   <a href="#failure">2. Define failure</a>
   <a href="#personas">3. Stakeholder personas</a>
   <div class="part">Analysis</div>
@@ -84,6 +85,42 @@
     </figure>
   </section>
 
+  <section id="output-contract">
+    <h2>JSON output contract</h2>
+    <p>Every command emits one JSON document by default. Automation should branch on the boolean <code>ok</code>, read successful results from <code>data</code>, and use <code>next_actions</code> to discover executable follow-up commands. The <code>command</code> array records the real invocation.</p>
+    <pre><code>{
+  "schema_version": "1.0",
+  "ok": true,
+  "command": ["status"],
+  "data": {
+    "initiative": "Product launch",
+    "phase": "personas",
+    "personas": 0,
+    "graph_nodes": 0,
+    "mitigations": 0
+  },
+  "warnings": [],
+  "next_actions": []
+}</code></pre>
+    <p>Failures use the same outer contract, replace <code>data</code> with a structured <code>error</code>, and return a nonzero process status:</p>
+    <pre><code>{
+  "schema_version": "1.0",
+  "ok": false,
+  "command": ["docs", "show", "missing"],
+  "error": {
+    "code": "ID_NOT_FOUND",
+    "message": "Documentation topic not found.",
+    "details": {
+      "context": "missing",
+      "hint": "Run `premortem docs list`."
+    }
+  },
+  "warnings": [],
+  "next_actions": []
+}</code></pre>
+    <div class="callout"><strong>Human output is explicit.</strong> Add <code>--human</code> when reading interactively. JSON remains the stable default for agents, scripts, and tests.</div>
+  </section>
+
   <section id="failure">
     <h2><span class="chapter-number">02</span> Define failure</h2>
     <p>Begin with the initiative, its context, and the outcomes that must be avoided. Then state failure in the past tense as though the team is looking back from the future.</p>
@@ -94,8 +131,28 @@
       <tr><td>Avoids hedging.</td><td>Uses “might,” “could,” or “possibly.”</td></tr>
     </tbody></table>
     <div class="callout"><strong>Example.</strong> “It is six months after launch. Adoption remains below 10%, support costs have doubled, and three key customers have left.” The statement is vivid and measurable without claiming why it happened.</div>
-    <pre><code>premortem init product_launch \
+    <pre><code>premortem init --initiative "Product launch" \
   --failure "It is six months after launch. Adoption remains below 10%, support costs have doubled, and three key customers have left."</code></pre>
+    <p>The command returns the stored project record and a structured next action:</p>
+    <pre><code>{
+  "schema_version": "1.0",
+  "ok": true,
+  "command": ["init", "--initiative", "Product launch", "--failure", "It is six months after launch..."],
+  "data": {
+    "id": "pm_2026_0723120000",
+    "initiative": "Product launch",
+    "failure_statement": "It is six months after launch...",
+    "phase": "personas"
+  },
+  "warnings": [],
+  "next_actions": [{
+    "label": "Run `premortem persona add`",
+    "command": ["premortem", "persona", "add"],
+    "mutates_state": true,
+    "requires_network": false,
+    "requires_user_approval": false
+  }]
+}</code></pre>
     <div class="callout warning"><strong>Approval checkpoint.</strong> Show the complete failure statement to the decision owner and get explicit approval before initializing the project.</div>
   </section>
 
@@ -108,8 +165,24 @@ premortem persona add --name support_lead --role "Support lead"
 premortem persona add --name sales_owner --role "Enterprise sales owner"
 
 # Or generate a set from project context:
-premortem analyze personas
+premortem analyze personas \
+  --context "B2B SaaS product-launch facilitator" \
+  --requirements "customer admin,end user,support lead,sales owner,engineering lead"
 premortem persona list</code></pre>
+    <p>A list command places the collection directly in <code>data</code>:</p>
+    <pre><code>{
+  "schema_version": "1.0",
+  "ok": true,
+  "command": ["persona", "list"],
+  "data": [{
+    "id": "p001",
+    "name": "customer_admin",
+    "role": "Customer administrator",
+    "perspective": null
+  }],
+  "warnings": [],
+  "next_actions": []
+}</code></pre>
     <div class="callout warning"><strong>Approval checkpoint.</strong> Review the persona set before generating reasons. Replace generic or redundant roles and check that consequential outsiders are represented.</div>
   </section>
 
@@ -121,7 +194,9 @@ premortem persona list</code></pre>
       <tr><td>Lack of alignment</td><td>Sales promises a migration path that engineering did not resource.</td></tr>
       <tr><td>Low adoption</td><td>Administrators cannot map existing permissions during onboarding and abandon setup.</td></tr>
     </tbody></table>
-    <pre><code>premortem analyze reasons
+    <pre><code>premortem analyze reasons \
+  --domain "permission model, migration tooling, support capacity, launch timeline" \
+  --good-example "Administrators cannot map legacy custom roles during setup, so pilot accounts stall before inviting users."
 premortem reason list
 premortem status</code></pre>
     <p>If the output reads like a generic risk register, regenerate with stronger domain context and one example at the desired level of specificity.</p>
@@ -136,8 +211,30 @@ premortem status</code></pre>
       <div class="card"><h4>Terminal outcomes</h4><p>No outgoing edges. These connect directly to the approved failure statement.</p></div>
       <div class="card"><h4>Convergence points</h4><p>Nodes reached by multiple pathways. These are often high-leverage intervention targets.</p></div>
     </div>
-    <pre><code>premortem graph build
-premortem graph show</code></pre>
+    <pre><code>premortem graph add-node \
+  --label "Permission migration blocks setup" --reason r001
+premortem graph add-node \
+  --label "Administrators abandon onboarding" --reason r002
+premortem graph add-edge --from n001 --to n002 \
+  --label "failed setup attempts"
+premortem graph list</code></pre>
+    <p>Graph output remains structured rather than embedding a rendered table:</p>
+    <pre><code>{
+  "schema_version": "1.0",
+  "ok": true,
+  "command": ["graph", "list"],
+  "data": {
+    "nodes": [
+      {"id": "n001", "label": "Permission migration blocks setup", "reason_ids": ["r001"]},
+      {"id": "n002", "label": "Administrators abandon onboarding", "reason_ids": ["r002"]}
+    ],
+    "edges": [
+      {"id": "e001", "source": "n001", "target": "n002", "label": "failed setup attempts"}
+    ]
+  },
+  "warnings": [],
+  "next_actions": []
+}</code></pre>
     <div class="callout warning"><strong>Approval checkpoint.</strong> The graph is analyst work. Review it for missing mechanisms, overloaded nodes, and ambiguous edges before moving to mitigation.</div>
   </section>
 
@@ -150,7 +247,7 @@ premortem graph show</code></pre>
       <tr><td>Uncertainty</td><td>How unsure are we that the mechanism or condition is real?</td></tr>
       <tr><td>Evidence</td><td>What observations, records, or precedents support the assessment?</td></tr>
     </tbody></table>
-    <pre><code>premortem score nodes
+    <pre><code>premortem score set --node n001 --likelihood high --impact high
 premortem status</code></pre>
   </section>
 
@@ -158,7 +255,8 @@ premortem status</code></pre>
     <h2><span class="chapter-number">07</span> Mitigations</h2>
     <p>Every mitigation should name the graph node it targets and specify who does what by when. Separate prevention, early detection, and response; they intervene at different points in the pathway.</p>
     <div class="callout"><strong>Concrete form.</strong> “Before the pilot begins, the customer-success lead will test permission migration with five existing administrators and publish the observed completion and abandonment rates.”</div>
-    <pre><code>premortem analyze mitigations
+    <pre><code>premortem analyze mitigations \
+  --good-example "Before the pilot, customer success tests role migration with five administrators and records completion and abandonment rates."
 premortem mitigate list</code></pre>
     <p>A mitigation with no graph target is probably too broad. Map it to a mechanism or treat it as a weak recommendation requiring revision.</p>
   </section>
@@ -166,7 +264,7 @@ premortem mitigate list</code></pre>
   <section id="research">
     <h2><span class="chapter-number">08</span> Research agenda</h2>
     <p>Not every uncertainty should become an action item. Research is valuable when an assumption is important, uncertain, and testable before the decision. A useful research question identifies the evidence that would update the recommendation.</p>
-    <pre><code>premortem analyze research</code></pre>
+    <pre><code>premortem analyze research-agenda</code></pre>
     <table><thead><tr><th>Question</th><th>Decision relevance</th><th>Evidence</th></tr></thead><tbody>
       <tr><td>Can current administrators complete permission migration unaided?</td><td>Determines whether self-serve onboarding is viable.</td><td>Observed completion rate and failure points in five moderated tests.</td></tr>
       <tr><td>Does the proposed workflow increase support burden?</td><td>Determines staffing and rollout pace.</td><td>Tickets per pilot account compared with the current product.</td></tr>
@@ -179,6 +277,22 @@ premortem mitigate list</code></pre>
     <pre><code>premortem analyze summary
 premortem report generate
 premortem agent-end</code></pre>
+    <p>Artifact-producing commands return the path and useful counts in <code>data</code>:</p>
+    <pre><code>{
+  "schema_version": "1.0",
+  "ok": true,
+  "command": ["analyze", "report"],
+  "data": {
+    "format": "html",
+    "output_path": ".premortem/output/report.html",
+    "persona_count": 5,
+    "reason_count": 10,
+    "graph_node_count": 8,
+    "graph_edge_count": 10
+  },
+  "warnings": [],
+  "next_actions": []
+}</code></pre>
     <p>The handoff should name the canonical report, make ownership explicit, and state what evidence must be gathered before the next go/no-go decision.</p>
   </section>
 
@@ -188,16 +302,25 @@ premortem agent-end</code></pre>
 python -m pip install -e .
 
 # Initialize only after the failure statement is approved
-premortem init product_launch \
+premortem init --initiative "Product launch" \
   --failure "It is six months after launch. Adoption is below 10%."
 
 # Generate, inspect, and advance through the workflow
-premortem analyze personas
-premortem analyze reasons
-premortem graph build
-premortem score nodes
-premortem analyze mitigations
-premortem analyze research
+premortem analyze personas \
+  --context "B2B SaaS product-launch facilitator" \
+  --requirements "customer admin,end user,support,sales,engineering"
+premortem ingest personas --from .premortem/output/results_personas.json
+premortem analyze reasons \
+  --domain "permissions, migration, support, sales commitments" \
+  --good-example "Administrators cannot map legacy custom roles, so pilot accounts stall before inviting users."
+premortem ingest reasons --from .premortem/output/results_reasons.json
+premortem graph add-node --label "A concrete cause" --reason r001
+premortem graph add-node --label "A downstream effect" --reason r002
+premortem graph add-edge --from n001 --to n002 --label "causal mechanism"
+premortem score set --node n001 --likelihood high --impact high
+premortem analyze mitigations \
+  --good-example "Before the pilot, customer success tests role migration with five administrators."
+premortem analyze research-agenda
 premortem analyze summary
 premortem report generate
 

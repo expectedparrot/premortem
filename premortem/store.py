@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import re
 import shutil
+import sys
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
@@ -45,32 +46,57 @@ def default_project_dir() -> Path:
     return Path("./.premortem")
 
 
-def make_json_envelope(command: str, data: Any, warnings: list[str] | None = None, next_steps: list[str] | None = None) -> dict[str, Any]:
+def command_argv() -> list[str]:
+    """Return the actual CLI arguments for machine-readable provenance."""
+    return sys.argv[1:]
+
+
+def _next_action(command: str) -> dict[str, Any]:
+    import shlex
+
+    argv = shlex.split(command)
     return {
-        "command": command,
-        "status": "ok",
+        "label": f"Run `{command}`",
+        "command": argv,
+        "mutates_state": any(
+            token in {"init", "add", "edit", "rename", "delete", "build", "ingest", "generate", "analyze"}
+            for token in argv
+        ),
+        "requires_network": "analyze" in argv,
+        "requires_user_approval": False,
+    }
+
+
+def make_json_envelope(command: str, data: Any, warnings: list[str] | None = None, next_steps: list[str] | None = None) -> dict[str, Any]:
+    del command
+    return {
+        "schema_version": "1.0",
+        "ok": True,
+        "command": command_argv(),
         "data": data,
         "warnings": warnings or [],
-        "errors": [],
-        "next_steps": next_steps or [],
+        "next_actions": [_next_action(step) for step in (next_steps or [])],
     }
 
 
 def error_envelope(command: str, err: PremortemError) -> dict[str, Any]:
+    del command
+    details: dict[str, Any] = {}
+    if err.context is not None:
+        details["context"] = err.context
+    if err.hint is not None:
+        details["hint"] = err.hint
     return {
-        "command": command,
-        "status": "error",
-        "data": {},
+        "schema_version": "1.0",
+        "ok": False,
+        "command": command_argv(),
+        "error": {
+            "code": err.code,
+            "message": err.message,
+            "details": details,
+        },
         "warnings": [],
-        "errors": [
-            {
-                "code": err.code,
-                "message": err.message,
-                "context": err.context,
-                "hint": err.hint,
-            }
-        ],
-        "next_steps": [],
+        "next_actions": [],
     }
 
 

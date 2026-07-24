@@ -47,12 +47,14 @@ def analyze_personas(
     """Generate deep stakeholder personas via EDSL."""
     from edsl import Agent, AgentList, QuestionList, Survey, Model
 
+    command = "analyze personas"
+    json_flag = should_emit_json(human)
     store = store_for(project_dir)
     try:
         store.require_project()
         meta = store.read_meta()
     except PremortemError as err:
-        fail("analyzepersonas", err, should_emit_json(human))
+        fail(command, err, json_flag)
 
     reqs = [r.strip() for r in persona_requirements.split(",") if r.strip()]
     req_bullets = "\n".join(f"- {r}" for r in reqs)
@@ -104,11 +106,15 @@ def analyze_personas(
     }
     out_path.write_text(json.dumps(envelope, indent=2))
 
+    data = {"entity_type": "personas", "count": len(rows), "rows": rows, "output_path": str(out_path)}
+    if json_flag:
+        finish(command, data, True, quiet, next_steps=[f"premortem ingest personas --from {out_path}"])
+        return
     if not quiet:
         typer.echo(f"Generated {len(rows)} personas → {out_path}")
         for r in rows:
             typer.echo(f"  • {r['persona_name']} — {r['role']}")
-    typer.echo(f"\nIngest with: premortem ingest personas --from {out_path}")
+        typer.echo(f"\nIngest with: premortem ingest personas --from {out_path}")
 
 
 # ── reasons ─────────────────────────────────────────────────────
@@ -137,17 +143,18 @@ def analyze_reasons(
     """Elicit rich failure reason narratives via EDSL."""
     from edsl import Agent, AgentList, QuestionFreeText, Survey, Model
 
+    command = "analyze reasons"
+    json_flag = should_emit_json(human)
     store = store_for(project_dir)
     try:
         store.require_project()
         meta = store.read_meta()
         personas = store.list_personas()
     except PremortemError as err:
-        fail("analyzereasons", err, should_emit_json(human))
+        fail(command, err, json_flag)
 
     if not personas:
-        typer.echo("No personas found. Run 'premortem analyze personas' first.", err=True)
-        raise typer.Exit(1)
+        fail(command, PremortemError("WORKFLOW_BLOCKED", "No personas found.", hint="Run `premortem analyze personas` first."), json_flag)
 
     agents = AgentList([
         Agent(
@@ -216,9 +223,13 @@ def analyze_reasons(
     }
     out_path.write_text(json.dumps(envelope, indent=2))
 
+    data = {"entity_type": "reasons", "persona_count": len(rows), "rows": rows, "output_path": str(out_path)}
+    if json_flag:
+        finish(command, data, True, quiet, next_steps=[f"premortem ingest reasons --from {out_path}"])
+        return
     if not quiet:
         typer.echo(f"Generated reasons from {len(rows)} personas → {out_path}")
-    typer.echo(f"\nIngest with: premortem ingest reasons --from {out_path}")
+        typer.echo(f"\nIngest with: premortem ingest reasons --from {out_path}")
 
 
 # ── mitigations ─────────────────────────────────────────────────
@@ -243,6 +254,8 @@ def analyze_mitigations(
     """Elicit concrete mitigations from personas via EDSL."""
     from edsl import Agent, AgentList, QuestionFreeText, Survey, Model
 
+    command = "analyze mitigations"
+    json_flag = should_emit_json(human)
     store = store_for(project_dir)
     try:
         store.require_project()
@@ -250,11 +263,10 @@ def analyze_mitigations(
         personas = store.list_personas()
         nodes = store.list_nodes()
     except PremortemError as err:
-        fail("analyzemitigations", err, should_emit_json(human))
+        fail(command, err, json_flag)
 
     if not personas or not nodes:
-        typer.echo("Need personas and graph nodes. Run earlier phases first.", err=True)
-        raise typer.Exit(1)
+        fail(command, PremortemError("WORKFLOW_BLOCKED", "Personas and graph nodes are required.", hint="Run the persona, reason, and graph phases first."), json_flag)
 
     node_list = "\n".join(f"  - {n.id}: {n.label}" for n in nodes)
 
@@ -313,6 +325,10 @@ def analyze_mitigations(
     }
     out_path.write_text(json.dumps(envelope, indent=2))
 
+    data = {"entity_type": "mitigations", "persona_count": len(rows), "rows": rows, "output_path": str(out_path)}
+    if json_flag:
+        finish(command, data, True, quiet)
+        return
     if not quiet:
         typer.echo(f"Generated mitigations from {len(rows)} personas → {out_path}")
 
@@ -330,6 +346,8 @@ def analyze_research_agenda(
     """Identify important uncertainties that could be resolved through empirical research."""
     from edsl import Agent, AgentList, QuestionFreeText, Survey, Model
 
+    command = "analyze research-agenda"
+    json_flag = should_emit_json(human)
     store = store_for(project_dir)
     try:
         store.require_project()
@@ -338,11 +356,10 @@ def analyze_research_agenda(
         nodes = store.list_nodes()
         reasons = store.list_reasons()
     except PremortemError as err:
-        fail("analyzeresearch-agenda", err, should_emit_json(human))
+        fail(command, err, json_flag)
 
     if not personas or not nodes:
-        typer.echo("Need personas and graph nodes. Run earlier phases first.", err=True)
-        raise typer.Exit(1)
+        fail(command, PremortemError("WORKFLOW_BLOCKED", "Personas and graph nodes are required.", hint="Run the persona, reason, and graph phases first."), json_flag)
 
     node_list = "\n".join(f"  - {n.id}: {n.label}" for n in nodes)
 
@@ -425,6 +442,10 @@ def analyze_research_agenda(
     }
     out_path.write_text(json.dumps(envelope, indent=2))
 
+    data = {"entity_type": "research_agenda", "persona_count": len(rows), "rows": rows, "output_path": str(out_path)}
+    if json_flag:
+        finish(command, data, True, quiet)
+        return
     if not quiet:
         typer.echo(f"Generated research agenda from {len(rows)} personas → {out_path}")
 
@@ -442,6 +463,8 @@ def analyze_summary(
     """Generate an executive summary synthesizing all findings."""
     from edsl import Agent, QuestionFreeText, Survey, Model
 
+    command = "analyze summary"
+    json_flag = should_emit_json(human)
     store = store_for(project_dir)
     try:
         store.require_project()
@@ -451,7 +474,7 @@ def analyze_summary(
         nodes = store.list_nodes()
         edges = store.list_edges()
     except PremortemError as err:
-        fail("analyzesummary", err, should_emit_json(human))
+        fail(command, err, json_flag)
 
     # Build context
     persona_summaries = "\n".join(f"- {p.name} ({p.role})" for p in personas)
@@ -548,6 +571,10 @@ def analyze_summary(
     }
     out_path.write_text(json.dumps(envelope, indent=2))
 
+    data = {"entity_type": "executive_summary", "text": summary_text, "output_path": str(out_path)}
+    if json_flag:
+        finish(command, data, True, quiet, next_steps=["premortem analyze report"])
+        return
     if not quiet:
         typer.echo(f"Executive summary saved to {out_path}")
         typer.echo(f"\n{summary_text[:300]}...")
@@ -706,9 +733,12 @@ def _short_label(label: str) -> str:
 def analyze_report(
     output: str = typer.Option("report.html", "--output", "-o", help="Output HTML file name (in .premortem/output/)."),
     project_dir: Path | None = ProjectDirOption,
+    human: bool = HumanOption,
     quiet: bool = QuietOption,
 ) -> None:
     """Generate a standalone HTML report from all pre-mortem data."""
+    command = "analyze report"
+    json_flag = should_emit_json(human)
     store = store_for(project_dir)
     h = _html_escape
     md = _markdown_to_html
@@ -721,7 +751,7 @@ def analyze_report(
         all_nodes = store.list_nodes()
         all_edges = store.list_edges()
     except PremortemError as err:
-        fail("analyzereport", err, True)
+        fail(command, err, json_flag)
 
     out_dir = _output_dir(store)
 
@@ -913,5 +943,20 @@ def analyze_report(
 
     out_path = out_dir / output
     out_path.write_text(result)
+    if json_flag:
+        finish(
+            command,
+            {
+                "format": "html",
+                "output_path": str(out_path),
+                "persona_count": len(personas),
+                "reason_count": len(reasons),
+                "graph_node_count": len(all_nodes),
+                "graph_edge_count": len(all_edges),
+            },
+            True,
+            quiet,
+        )
+        return
     if not quiet:
         typer.echo(f"HTML report written to {out_path}")
