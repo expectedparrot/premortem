@@ -3,232 +3,235 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Premortem is a structured pre-mortem failure analysis CLI.">
-  <title>premortem — failure analysis before commitment</title>
+  <meta name="description" content="A practical guide to structured pre-mortem failure analysis with Premortem.">
+  <title>Expected Parrot | Failure Analysis with Premortem</title>
   <style>
-    :root {
-      color-scheme: light;
-      --ink: #17211b;
-      --muted: #5c6860;
-      --paper: #f5f1e8;
-      --card: #fffdf7;
-      --accent: #cb4b32;
-      --line: #d9d2c3;
-      --code: #202a24;
-    }
-    * { box-sizing: border-box; }
-    html { scroll-behavior: smooth; }
-    body {
-      margin: 0;
-      color: var(--ink);
-      background:
-        radial-gradient(circle at 80% 5%, #e7d5b8 0, transparent 28rem),
-        var(--paper);
-      font: 17px/1.65 ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    }
-    a { color: inherit; }
-    .wrap { width: min(1080px, calc(100% - 2.5rem)); margin: auto; }
-    nav {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 1.25rem 0;
-      font-size: .92rem;
-    }
-    nav strong { letter-spacing: -.02em; }
-    nav a { text-decoration: none; }
-    nav .links { display: flex; gap: 1.25rem; color: var(--muted); }
-    header { padding: 6rem 0 7rem; }
-    .eyebrow {
-      color: var(--accent);
-      font-size: .78rem;
-      font-weight: 800;
-      letter-spacing: .13em;
-      text-transform: uppercase;
-    }
-    h1, h2, h3 {
-      margin: 0;
-      font-family: ui-serif, Georgia, Cambria, "Times New Roman", serif;
-      line-height: 1.08;
-      letter-spacing: -.035em;
-    }
-    h1 { max-width: 850px; margin-top: 1rem; font-size: clamp(3.2rem, 8vw, 7rem); }
-    h1 em { color: var(--accent); font-weight: inherit; }
-    .lede {
-      max-width: 690px;
-      margin: 2rem 0;
-      color: var(--muted);
-      font-size: clamp(1.1rem, 2vw, 1.35rem);
-    }
-    .actions { display: flex; flex-wrap: wrap; gap: .75rem; }
-    .button {
-      display: inline-block;
-      padding: .72rem 1.05rem;
-      border: 1px solid var(--ink);
-      border-radius: 999px;
-      text-decoration: none;
-      font-size: .92rem;
-      font-weight: 700;
-    }
-    .button.primary { color: var(--paper); background: var(--ink); }
-    section { padding: 5.5rem 0; border-top: 1px solid var(--line); }
-    h2 { max-width: 740px; font-size: clamp(2.2rem, 5vw, 4.2rem); }
-    .section-intro { max-width: 690px; margin: 1.4rem 0 3rem; color: var(--muted); }
-    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
-    .card {
-      min-height: 190px;
-      padding: 1.5rem;
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      background: color-mix(in srgb, var(--card) 90%, transparent);
-    }
-    .card .number { color: var(--accent); font: 700 .8rem/1 ui-monospace, monospace; }
-    .card h3 { margin: 2rem 0 .7rem; font-size: 1.45rem; }
-    .card p { margin: 0; color: var(--muted); font-size: .95rem; }
-    pre {
-      overflow-x: auto;
-      margin: 2.5rem 0 0;
-      padding: 1.5rem;
-      border-radius: 12px;
-      color: #eef4ef;
-      background: var(--code);
-      font: .9rem/1.8 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    }
-    code span { color: #e7aa6d; }
-    .outcome {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 3rem;
-      align-items: start;
-    }
-    .outcome ul { margin: 0; padding: 0; list-style: none; }
-    .outcome li { padding: .9rem 0; border-bottom: 1px solid var(--line); }
-    footer {
-      display: flex;
-      justify-content: space-between;
-      gap: 1rem;
-      padding: 2rem 0 4rem;
-      color: var(--muted);
-      font-size: .85rem;
-    }
-    @media (max-width: 760px) {
-      header { padding: 4rem 0 5rem; }
-      .grid, .outcome { grid-template-columns: 1fr; }
-      nav .links a:not(:last-child) { display: none; }
-      footer { flex-direction: column; }
-    }
+    :root{--ep-green:#428a5f;--ep-green-light:#5ba97a;--ep-green-dark:#214d35;--ink:#1a1a1a;--muted:#666;--paper:#f6f7f8;--panel:#fff;--rule:#e0e0e0;--accent:var(--ep-green);--soft:#f0f7f2;--code:#1e1e1e;--sidebar:290px;--measure:790px;--font-serif:Georgia,"Times New Roman",serif;--font-sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;--font-mono:"SF Mono",Consolas,"Liberation Mono",Menlo,monospace}
+    *{box-sizing:border-box}html{scroll-behavior:smooth;-webkit-font-smoothing:antialiased}body{margin:0;color:var(--ink);background:var(--paper);font:16px/1.7 var(--font-sans)}
+    #progress{position:fixed;inset:0 auto auto 0;z-index:20;width:0;height:4px;background:var(--accent)}
+    nav{position:fixed;inset:0 auto 0 0;z-index:10;width:var(--sidebar);overflow-y:auto;padding:22px 22px 40px;color:#eef7f1;background:var(--ep-green-dark);font:14px/1.35 var(--font-sans)}
+    nav .brand-lockup{display:block;margin:0 0 20px;padding:12px;color:var(--ink);background:#fff;border-radius:9px;text-decoration:none}
+    nav .brand-lockup:hover{color:var(--ink);background:#f7faf8;text-decoration:none}nav .brand-lockup span{display:block;font-size:15px;font-weight:750;line-height:1.15}nav .brand-lockup small{display:block;margin-top:4px;color:var(--muted);font-size:10px;font-weight:650;letter-spacing:.06em;text-transform:uppercase}
+    nav .book-title{margin:0 8px 24px;font:600 20px/1.2 var(--font-serif)}nav>a:not(.brand-lockup){display:block;padding:6px 8px;color:#d5e9dc;text-decoration:none;border-radius:6px}nav>a:not(.brand-lockup):hover{color:#fff;background:#2d6244}
+    nav .part{margin:19px 8px 5px;color:#a7d7b9;font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}nav .small{margin:28px 8px 0;color:#b7cec0;font-size:12px}
+    main{margin-left:var(--sidebar)}article{max-width:916px;margin:auto;padding:48px 48px 110px;background:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.025)}header.hero{padding:62px 0 46px;border-bottom:3px solid var(--ep-green)}
+    .eyebrow{color:var(--accent);font:800 12px/1 var(--font-sans);letter-spacing:.13em;text-transform:uppercase}h1,h2,h3,h4{font-family:var(--font-serif);font-weight:600;line-height:1.3}
+    h1{max-width:760px;margin:14px 0 20px;font-size:clamp(42px,6vw,62px);letter-spacing:-.025em}h2{margin:80px 0 22px;padding:12px 0 8px;color:var(--ep-green);font-size:32px;letter-spacing:-.015em;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}h3{margin:42px 0 14px;font-size:23px}h4{margin:28px 0 8px;color:var(--muted);font-size:18px}
+    .dek{max-width:720px;color:var(--muted);font-size:21px;line-height:1.5}.metadata{display:flex;flex-wrap:wrap;gap:10px 24px;margin-top:28px;color:var(--muted);font:13px/1.4 var(--font-sans)}
+    p,ul,ol,table,pre,.callout,figure{max-width:var(--measure)}a{color:var(--ep-green);text-decoration:none}a:hover{color:var(--ep-green-light);text-decoration:underline}li::marker{color:var(--ep-green)}code{padding:.15em .35em;color:var(--ink);background:#f2f4f2;border-radius:4px;font-family:var(--font-mono);font-size:.88em}
+    pre{position:relative;overflow-x:auto;margin:18px 0 26px;padding:20px 54px 20px 22px;color:#d4d4d4;background:var(--code);border-radius:8px;font:13px/1.55 var(--font-mono)}pre code{padding:0;color:inherit;background:none}
+    .copy{position:absolute;top:10px;right:10px;padding:5px 8px;color:#d8ebe0;background:#34453b;border:0;border-radius:5px;font:11px var(--font-sans);cursor:pointer}.copy:hover{color:#fff;background:var(--ep-green)}
+    .callout{margin:24px 0;padding:18px 22px;background:linear-gradient(135deg,#f8faf8 0%,#f0f7f2 100%);border-left:4px solid var(--accent);border-radius:0 8px 8px 0}.callout.warning{background:#fff8eb;border-color:#c4862c}
+    table{width:100%;margin:20px 0 28px;border-collapse:collapse;font:14px/1.5 var(--font-sans)}th,td{padding:11px 12px;text-align:left;vertical-align:top;border-bottom:1px solid var(--rule)}th{color:#fff;background:var(--ep-green);font-weight:650}tbody tr:nth-child(even){background:#f7f8f7}tbody tr:hover{background:#e8f5e9}
+    figure{margin:30px 0 36px;padding:20px;background:var(--panel);border:1px solid var(--rule);border-radius:8px}figure svg{display:block;width:100%;height:auto}figcaption{margin-top:14px;color:var(--muted);font:13px/1.45 var(--font-sans)}
+    .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:18px;max-width:var(--measure)}.card{padding:18px;background:var(--panel);border:1px solid var(--rule);border-radius:8px;box-shadow:0 2px 7px rgba(0,0,0,.035)}.card h4{margin-top:0}.chapter-number{color:var(--accent);font-size:.55em;vertical-align:.35em}
+    footer{margin-top:90px;padding-top:28px;color:var(--muted);border-top:3px solid var(--ep-green);font:13px/1.5 var(--font-sans)}
+    @media(max-width:980px){nav{position:static;width:auto}nav>a:not(.brand-lockup){display:inline-block}.brand-lockup{max-width:290px}nav .part{display:block}main{margin-left:0}article{padding:28px 24px 80px}}@media(max-width:650px){.grid-2{grid-template-columns:1fr}h2{font-size:29px}}
+    @media print{nav,#progress,.copy{display:none!important}main{margin:0}article{max-width:none;padding:0}body{color:#000;background:#fff;font-size:11pt}h2{break-before:page;margin-top:0}pre{white-space:pre-wrap;color:#000;background:#eee;border:1px solid #aaa}figure,table,.callout{break-inside:avoid}}
   </style>
 </head>
 <body>
-  <nav class="wrap" aria-label="Primary navigation">
-    <strong>premortem</strong>
-    <div class="links">
-      <a href="#method">Method</a>
-      <a href="#quickstart">Quickstart</a>
-      <a href="https://github.com/expectedparot/premortem">GitHub ↗</a>
-    </div>
-  </nav>
+<div id="progress"></div>
+<nav aria-label="Book contents">
+  <a class="brand-lockup" href="https://www.expectedparrot.com/" target="_blank" rel="noopener"><span>Expected Parrot<small>Open-source research tools</small></span></a>
+  <div class="book-title">Failure Analysis<br>with Premortem</div>
+  <div class="part">Foundations</div>
+  <a href="#orientation">1. Orientation</a>
+  <a href="#failure">2. Define failure</a>
+  <a href="#personas">3. Stakeholder personas</a>
+  <div class="part">Analysis</div>
+  <a href="#reasons">4. Failure reasons</a>
+  <a href="#graph">5. Causal graph</a>
+  <a href="#score">6. Scoring risks</a>
+  <div class="part">Action</div>
+  <a href="#mitigations">7. Mitigations</a>
+  <a href="#research">8. Research agenda</a>
+  <a href="#reporting">9. Reporting</a>
+  <div class="part">Reference</div>
+  <a href="#quickstart">10. Command sequence</a>
+  <div class="small">Self-contained guide for the Premortem CLI.</div>
+</nav>
 
-  <header class="wrap">
-    <div class="eyebrow">Prospective hindsight, made operational</div>
-    <h1>Imagine failure. <em>Then prevent it.</em></h1>
-    <p class="lede">
-      premortem is a structured CLI workflow for finding plausible failure paths,
-      mapping their causes, and turning uncertainty into mitigations and research.
-    </p>
-    <div class="actions">
-      <a class="button primary" href="#quickstart">Get started</a>
-      <a class="button" href="https://github.com/expectedparot/premortem">View source</a>
-    </div>
+<main><article>
+  <header class="hero">
+    <div class="eyebrow">Expected Parrot · A practical facilitation guide</div>
+    <h1>Structured Pre-mortem Failure Analysis</h1>
+    <p class="dek">From a vivid imagined failure through stakeholder perspectives and causal pathways to concrete mitigations, research questions, and a decision-ready report.</p>
+    <div class="metadata"><span>Tool: <strong>Premortem</strong></span><span>Method: <strong>prospective hindsight</strong></span><span>Audience: decision makers, analysts, and agents</span></div>
   </header>
 
-  <main>
-    <section id="method">
-      <div class="wrap">
-        <div class="eyebrow">The method</div>
-        <h2>A disciplined path from imagined failure to better decisions.</h2>
-        <p class="section-intro">
-          The workflow uses stakeholder perspectives and causal reasoning—not a
-          generic risk checklist. Explicit review points keep the analysis legible.
-        </p>
-        <div class="grid">
-          <article class="card">
-            <div class="number">01</div>
-            <h3>Define failure</h3>
-            <p>Write a vivid, completed-fact statement focused on consequences rather than causes.</p>
-          </article>
-          <article class="card">
-            <div class="number">02</div>
-            <h3>Broaden the view</h3>
-            <p>Use distinct stakeholder personas to surface operational, customer, technical, and strategic failure stories.</p>
-          </article>
-          <article class="card">
-            <div class="number">03</div>
-            <h3>Trace the system</h3>
-            <p>Turn reasons into a compact causal graph showing where root causes converge and amplify one another.</p>
-          </article>
-          <article class="card">
-            <div class="number">04</div>
-            <h3>Score what matters</h3>
-            <p>Evaluate important nodes by severity, controllability, uncertainty, and available evidence.</p>
-          </article>
-          <article class="card">
-            <div class="number">05</div>
-            <h3>Break the pathways</h3>
-            <p>Attach concrete, owned, time-bound mitigations to the graph nodes they are designed to change.</p>
-          </article>
-          <article class="card">
-            <div class="number">06</div>
-            <h3>Test assumptions</h3>
-            <p>Convert unresolved uncertainty into a focused research agenda before the final commitment.</p>
-          </article>
-        </div>
-      </div>
-    </section>
+  <section id="orientation">
+    <h2><span class="chapter-number">01</span> Orientation</h2>
+    <p>A pre-mortem assumes that an initiative has already failed and works backward to explain how. This prospective-hindsight frame gives participants permission to surface concerns that ordinary planning can suppress.</p>
+    <p>Premortem turns that exercise into an auditable workflow. It separates divergent discovery from causal synthesis and keeps recommendations attached to the failure mechanisms they are meant to change.</p>
+    <div class="grid-2">
+      <div class="card"><h4>Imagine</h4><p>Describe definitive failure as a completed fact, including visible consequences.</p></div>
+      <div class="card"><h4>Diversify</h4><p>Use distinct stakeholder lenses to expose different incentives, information, and pain points.</p></div>
+      <div class="card"><h4>Explain</h4><p>Organize failure stories into a compact causal graph of roots, effects, and outcomes.</p></div>
+      <div class="card"><h4>Intervene</h4><p>Target dangerous pathways with mitigations and research that can change the decision.</p></div>
+    </div>
+    <div class="callout"><strong>A decision aid, not a prediction.</strong> The objective is not to estimate one inevitable future. It is to identify plausible mechanisms early enough to prevent them or test the assumptions behind them.</div>
+    <figure>
+      <svg viewBox="0 0 760 145" role="img" aria-label="Premortem workflow">
+        <defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#50646a"/></marker></defs>
+        <g font-family="Arial,Helvetica,sans-serif" font-size="13" text-anchor="middle">
+          <g fill="#edf7f1" stroke="#428a5f"><rect x="10" y="40" width="110" height="54" rx="7"/><rect x="145" y="40" width="110" height="54" rx="7"/><rect x="280" y="40" width="110" height="54" rx="7"/><rect x="415" y="40" width="110" height="54" rx="7"/><rect x="550" y="40" width="110" height="54" rx="7"/></g>
+          <text x="65" y="63"><tspan x="65">Define imagined</tspan><tspan x="65" dy="18">failure</tspan></text><text x="200" y="63"><tspan x="200">Generate views</tspan><tspan x="200" dy="18">and reasons</tspan></text><text x="335" y="63"><tspan x="335">Build a causal</tspan><tspan x="335" dy="18">graph</tspan></text><text x="470" y="63"><tspan x="470">Design targeted</tspan><tspan x="470" dy="18">interventions</tspan></text><text x="605" y="63"><tspan x="605">Research and</tspan><tspan x="605" dy="18">report</tspan></text>
+          <g stroke="#50646a" stroke-width="2" marker-end="url(#arrow)"><line x1="122" y1="67" x2="140" y2="67"/><line x1="257" y1="67" x2="275" y2="67"/><line x1="392" y1="67" x2="410" y2="67"/><line x1="527" y1="67" x2="545" y2="67"/></g>
+        </g>
+      </svg>
+      <figcaption>The workflow alternates generation, analyst synthesis, and explicit user review.</figcaption>
+    </figure>
+  </section>
 
-    <section id="quickstart">
-      <div class="wrap">
-        <div class="eyebrow">Quickstart</div>
-        <h2>Run the workflow from your terminal.</h2>
-        <pre><code><span># Install the package in development mode</span>
+  <section id="failure">
+    <h2><span class="chapter-number">02</span> Define failure</h2>
+    <p>Begin with the initiative, its context, and the outcomes that must be avoided. Then state failure in the past tense as though the team is looking back from the future.</p>
+    <table><thead><tr><th>A strong statement</th><th>A weak statement</th></tr></thead><tbody>
+      <tr><td>Names a date or horizon.</td><td>Uses an indefinite “someday.”</td></tr>
+      <tr><td>Describes observable consequences.</td><td>Says only that the project “did not go well.”</td></tr>
+      <tr><td>Leaves causes for the analysis.</td><td>Embeds a favored causal explanation.</td></tr>
+      <tr><td>Avoids hedging.</td><td>Uses “might,” “could,” or “possibly.”</td></tr>
+    </tbody></table>
+    <div class="callout"><strong>Example.</strong> “It is six months after launch. Adoption remains below 10%, support costs have doubled, and three key customers have left.” The statement is vivid and measurable without claiming why it happened.</div>
+    <pre><code>premortem init product_launch \
+  --failure "It is six months after launch. Adoption remains below 10%, support costs have doubled, and three key customers have left."</code></pre>
+    <div class="callout warning"><strong>Approval checkpoint.</strong> Show the complete failure statement to the decision owner and get explicit approval before initializing the project.</div>
+  </section>
+
+  <section id="personas">
+    <h2><span class="chapter-number">03</span> Stakeholder personas</h2>
+    <p>Create four to six perspectives whose incentives, access to information, and exposure to consequences differ. Useful roles often include the builder, buyer or user, operator, skeptic, and decision owner.</p>
+    <p>Personas are analytic lenses, not decorative biographies. Each one should reveal failure mechanisms that another role may miss.</p>
+    <pre><code>premortem persona add --name customer_admin --role "Customer administrator"
+premortem persona add --name support_lead --role "Support lead"
+premortem persona add --name sales_owner --role "Enterprise sales owner"
+
+# Or generate a set from project context:
+premortem analyze personas
+premortem persona list</code></pre>
+    <div class="callout warning"><strong>Approval checkpoint.</strong> Review the persona set before generating reasons. Replace generic or redundant roles and check that consequential outsiders are represented.</div>
+  </section>
+
+  <section id="reasons">
+    <h2><span class="chapter-number">04</span> Failure reasons</h2>
+    <p>Ask each persona to explain how the failure unfolded. Collect both episodic event chains and structural conditions. Concrete mechanisms are more useful than abstract risk labels.</p>
+    <table><thead><tr><th>Generic label</th><th>Operational mechanism</th></tr></thead><tbody>
+      <tr><td>Poor communication</td><td>Support learns of breaking workflow changes from customers after deployment.</td></tr>
+      <tr><td>Lack of alignment</td><td>Sales promises a migration path that engineering did not resource.</td></tr>
+      <tr><td>Low adoption</td><td>Administrators cannot map existing permissions during onboarding and abandon setup.</td></tr>
+    </tbody></table>
+    <pre><code>premortem analyze reasons
+premortem reason list
+premortem status</code></pre>
+    <p>If the output reads like a generic risk register, regenerate with stronger domain context and one example at the desired level of specificity.</p>
+  </section>
+
+  <section id="graph">
+    <h2><span class="chapter-number">05</span> Causal graph</h2>
+    <p>Synthesize the reasons into a small directed graph: roughly three or four root causes, two or three intermediate effects, and one or two terminal outcomes. Edges should name causal mechanisms, not merely imply sequence.</p>
+    <div class="grid-2">
+      <div class="card"><h4>Root causes</h4><p>No incoming edges. These are upstream conditions that create or amplify the pathway.</p></div>
+      <div class="card"><h4>Intermediate effects</h4><p>Where causes combine, feedback develops, or symptoms begin to propagate.</p></div>
+      <div class="card"><h4>Terminal outcomes</h4><p>No outgoing edges. These connect directly to the approved failure statement.</p></div>
+      <div class="card"><h4>Convergence points</h4><p>Nodes reached by multiple pathways. These are often high-leverage intervention targets.</p></div>
+    </div>
+    <pre><code>premortem graph build
+premortem graph show</code></pre>
+    <div class="callout warning"><strong>Approval checkpoint.</strong> The graph is analyst work. Review it for missing mechanisms, overloaded nodes, and ambiguous edges before moving to mitigation.</div>
+  </section>
+
+  <section id="score">
+    <h2><span class="chapter-number">06</span> Scoring risks</h2>
+    <p>Score important graph nodes to direct attention, not to manufacture false precision. Severity indicates consequence; controllability indicates leverage; uncertainty identifies where research has value; evidence records how much confidence the team should place in the claim.</p>
+    <table><thead><tr><th>Dimension</th><th>Question</th></tr></thead><tbody>
+      <tr><td>Severity</td><td>If this node occurs, how much does it contribute to definitive failure?</td></tr>
+      <tr><td>Controllability</td><td>Can the team materially change it before commitment or launch?</td></tr>
+      <tr><td>Uncertainty</td><td>How unsure are we that the mechanism or condition is real?</td></tr>
+      <tr><td>Evidence</td><td>What observations, records, or precedents support the assessment?</td></tr>
+    </tbody></table>
+    <pre><code>premortem score nodes
+premortem status</code></pre>
+  </section>
+
+  <section id="mitigations">
+    <h2><span class="chapter-number">07</span> Mitigations</h2>
+    <p>Every mitigation should name the graph node it targets and specify who does what by when. Separate prevention, early detection, and response; they intervene at different points in the pathway.</p>
+    <div class="callout"><strong>Concrete form.</strong> “Before the pilot begins, the customer-success lead will test permission migration with five existing administrators and publish the observed completion and abandonment rates.”</div>
+    <pre><code>premortem analyze mitigations
+premortem mitigate list</code></pre>
+    <p>A mitigation with no graph target is probably too broad. Map it to a mechanism or treat it as a weak recommendation requiring revision.</p>
+  </section>
+
+  <section id="research">
+    <h2><span class="chapter-number">08</span> Research agenda</h2>
+    <p>Not every uncertainty should become an action item. Research is valuable when an assumption is important, uncertain, and testable before the decision. A useful research question identifies the evidence that would update the recommendation.</p>
+    <pre><code>premortem analyze research</code></pre>
+    <table><thead><tr><th>Question</th><th>Decision relevance</th><th>Evidence</th></tr></thead><tbody>
+      <tr><td>Can current administrators complete permission migration unaided?</td><td>Determines whether self-serve onboarding is viable.</td><td>Observed completion rate and failure points in five moderated tests.</td></tr>
+      <tr><td>Does the proposed workflow increase support burden?</td><td>Determines staffing and rollout pace.</td><td>Tickets per pilot account compared with the current product.</td></tr>
+    </tbody></table>
+  </section>
+
+  <section id="reporting">
+    <h2><span class="chapter-number">09</span> Reporting</h2>
+    <p>The final report should lead with the recommendation, then show the failure definition, stakeholder lenses, causal pathways, prioritized mitigations, and highest-leverage research. Preserve provenance so readers can distinguish user input, generated material, analyst synthesis, and evidence.</p>
+    <pre><code>premortem analyze summary
+premortem report generate
+premortem agent-end</code></pre>
+    <p>The handoff should name the canonical report, make ownership explicit, and state what evidence must be gathered before the next go/no-go decision.</p>
+  </section>
+
+  <section id="quickstart">
+    <h2><span class="chapter-number">10</span> Canonical command sequence</h2>
+    <pre><code># Install locally
 python -m pip install -e .
 
-<span># Start with a concrete imagined failure</span>
+# Initialize only after the failure statement is approved
 premortem init product_launch \
-  --failure "It is six months after launch. Adoption is below 10%, support costs have doubled, and key customers have left."
+  --failure "It is six months after launch. Adoption is below 10%."
 
-<span># Check state and move through the analysis</span>
-premortem status
+# Generate, inspect, and advance through the workflow
 premortem analyze personas
 premortem analyze reasons
 premortem graph build
 premortem score nodes
 premortem analyze mitigations
 premortem analyze research
-premortem report generate</code></pre>
-      </div>
-    </section>
+premortem analyze summary
+premortem report generate
 
-    <section>
-      <div class="wrap outcome">
-        <div>
-          <div class="eyebrow">The output</div>
-          <h2>A decision aid, not a prediction.</h2>
-        </div>
-        <ul>
-          <li>Plausible, stakeholder-specific failure mechanisms</li>
-          <li>A readable causal graph of dangerous pathways</li>
-          <li>Concrete mitigations tied to graph nodes</li>
-          <li>Research questions that can change the decision</li>
-          <li>A final report with evidence and recommendations</li>
-        </ul>
-      </div>
-    </section>
-  </main>
+# Check state whenever resuming
+premortem status
+premortem workflow</code></pre>
+    <div class="callout"><strong>Use the CLI as the source of truth.</strong> Project state lives in <code>.premortem/</code>. Do not edit its JSON files directly; use commands so validation and workflow state remain consistent.</div>
+  </section>
 
-  <footer class="wrap">
-    <span>premortem · structured failure analysis</span>
-    <span>Think backward. Decide forward.</span>
+  <footer>
+    <strong>Expected Parrot · Premortem</strong>
+    <p>Open-source tools for structured research with agents and human respondents. View the <a href="https://github.com/expectedparrot/premortem">source on GitHub</a>.</p>
   </footer>
+</article></main>
+<script>
+  document.querySelectorAll("pre").forEach((pre) => {
+    const button = document.createElement("button");
+    button.className = "copy";
+    button.type = "button";
+    button.textContent = "Copy";
+    button.addEventListener("click", async () => {
+      await navigator.clipboard.writeText(pre.innerText.replace(/^Copy\n/, ""));
+      button.textContent = "Copied";
+      setTimeout(() => button.textContent = "Copy", 1200);
+    });
+    pre.appendChild(button);
+  });
+  const progress = document.getElementById("progress");
+  const updateProgress = () => {
+    const max = document.documentElement.scrollHeight - innerHeight;
+    progress.style.width = (max > 0 ? scrollY / max * 100 : 0) + "%";
+  };
+  addEventListener("scroll", updateProgress, {passive:true});
+  updateProgress();
+</script>
 </body>
 </html>
