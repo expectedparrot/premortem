@@ -1,6 +1,8 @@
 # premortem — structured pre-mortem failure analysis CLI
 <!-- id: premortem/premortem -->
 
+[View the project website](docs/index.html)
+
 premortem runs a Gary Klein-style pre-mortem workflow for decisions, launches, projects, and strategies: define the imagined failure, generate stakeholder personas, elicit failure reasons, build a causal graph, score nodes, create mitigations, form a research agenda, and render a report. The agent uses it as an active facilitator, stopping at approval checkpoints before escalating from imagined failure to mitigations and final recommendations.
 
 ## When to use this
