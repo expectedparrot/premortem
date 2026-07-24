@@ -24,7 +24,7 @@
     .callout{margin:24px 0;padding:18px 22px;background:linear-gradient(135deg,#f8faf8 0%,#f0f7f2 100%);border-left:4px solid var(--accent);border-radius:0 8px 8px 0}.callout.warning{background:#fff8eb;border-color:#c4862c}
     table{width:100%;margin:20px 0 28px;border-collapse:collapse;font:14px/1.5 var(--font-sans)}th,td{padding:11px 12px;text-align:left;vertical-align:top;border-bottom:1px solid var(--rule)}th{color:#fff;background:var(--ep-green);font-weight:650}tbody tr:nth-child(even){background:#f7f8f7}tbody tr:hover{background:#e8f5e9}
     figure{margin:30px 0 36px;padding:20px;background:var(--panel);border:1px solid var(--rule);border-radius:8px}figure svg{display:block;width:100%;height:auto}figcaption{margin-top:14px;color:var(--muted);font:13px/1.45 var(--font-sans)}
-    .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:18px;max-width:var(--measure)}.card{padding:18px;background:var(--panel);border:1px solid var(--rule);border-radius:8px;box-shadow:0 2px 7px rgba(0,0,0,.035)}.card h4{margin-top:0}.chapter-number{color:var(--accent);font-size:.55em;vertical-align:.35em}
+    .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:18px;max-width:var(--measure)}.card{padding:18px;background:var(--panel);border:1px solid var(--rule);border-radius:8px;box-shadow:0 2px 7px rgba(0,0,0,.035)}.card h4{margin-top:0}.chapter-number{color:var(--accent);font-size:.55em;vertical-align:.35em}.command-step{max-width:var(--measure);margin:30px 0 46px;padding:20px;border:1px solid var(--rule);border-radius:10px;background:#fbfcfb}.command-step h3{margin:0 0 10px}.command-step pre{margin-bottom:16px}.block-label{margin:18px 0 6px;color:var(--muted);font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase}.args{margin:14px 0 20px}.args dt{margin-top:8px;font-family:var(--font-mono);font-size:13px;font-weight:700}.args dd{margin-left:0;color:var(--muted);font-size:14px}
     footer{margin-top:90px;padding-top:28px;color:var(--muted);border-top:3px solid var(--ep-green);font:13px/1.5 var(--font-sans)}
     @media(max-width:980px){nav{position:static;width:auto}nav>a:not(.brand-lockup){display:inline-block}.brand-lockup{max-width:290px}nav .part{display:block}main{margin-left:0}article{padding:28px 24px 80px}}@media(max-width:650px){.grid-2{grid-template-columns:1fr}h2{font-size:29px}}
     @media print{nav,#progress,.copy{display:none!important}main{margin:0}article{max-width:none;padding:0}body{color:#000;background:#fff;font-size:11pt}h2{break-before:page;margin-top:0}pre{white-space:pre-wrap;color:#000;background:#eee;border:1px solid #aaa}figure,table,.callout{break-inside:avoid}}
@@ -124,47 +124,52 @@
 
   <section id="edsl-jobs">
     <h2>EDSL Jobs workflow</h2>
-    <p>Premortem prepares research jobs; EDSL runs them. The package never chooses a paid model or makes the model call while building a job. Each AI-assisted phase follows the same four-step boundary:</p>
-    <pre><code># 1. Build a portable, model-free Jobs object
-premortem job generate personas \
-  --context "B2B SaaS launch facilitator" \
-  --requirements "customer admin,support,sales,engineering" \
-  --output jobs/personas.jobs.ep
-
-# 2. Inspect the exact survey, agents, and scenarios; estimate cost
-ep inspect jobs/personas.jobs.ep
-ep jobs cost jobs/personas.jobs.ep
-
-# 3. Choose a model explicitly and execute with EDSL
-ep run jobs/personas.jobs.ep \
-  --model &lt;model-name&gt; \
-  --output jobs/personas-results.ep
-
-# 4. Ingest the portable EDSL Results object
-premortem ingest personas --from jobs/personas-results.ep</code></pre>
-    <p>The build command returns the package facts and all three follow-up actions:</p>
-    <pre><code>{
-  "schema_version": "1.0",
-  "ok": true,
-  "command": ["job", "generate", "personas", "..."],
-  "data": {
-    "object_type": "Jobs",
-    "phase": "personas",
-    "output_path": "jobs/personas.jobs.ep",
-    "expected_results_path": "jobs/personas-results.ep",
-    "question_names": ["personas"],
-    "agent_count": 1,
-    "scenario_count": 1,
-    "model_count": 0
-  },
-  "warnings": [],
-  "next_actions": [
-    {"command": ["ep", "inspect", "jobs/personas.jobs.ep"]},
-    {"command": ["ep", "jobs", "cost", "jobs/personas.jobs.ep"]},
-    {"command": ["ep", "run", "jobs/personas.jobs.ep", "--model", "&lt;model-name&gt;", "--output", "jobs/personas-results.ep"]},
-    {"command": ["premortem", "ingest", "personas", "--from", "jobs/personas-results.ep"]}
-  ]
-}</code></pre>
+    <p>Premortem packages the research design; EDSL executes it. These four commands form the boundary for every AI-assisted phase.</p>
+    <div class="command-step">
+      <h3>1. Build the Jobs package</h3>
+      <p>Creates a portable EDSL <code>Jobs</code> object without selecting or calling a model.</p>
+      <dl class="args"><dt>personas</dt><dd>The phase to package.</dd><dt>--context</dt><dd>The facilitator perspective used to design stakeholder personas.</dd><dt>--requirements</dt><dd>Comma-separated stakeholder roles that must be represented.</dd><dt>--output</dt><dd>Destination for the model-free <code>.jobs.ep</code> artifact.</dd></dl>
+      <div class="block-label">Command</div>
+      <pre><code>premortem job generate personas --context "B2B SaaS launch facilitator" --requirements "customer admin,support,sales,engineering" --output jobs/personas.jobs.ep</code></pre>
+      <div class="block-label">Output</div>
+      <pre><code>{"schema_version":"1.0","ok":true,"data":{"object_type":"Jobs","phase":"personas","output_path":"jobs/personas.jobs.ep","expected_results_path":"jobs/personas-results.ep","question_names":["personas"],"agent_count":1,"scenario_count":1,"model_count":0},"warnings":[]}</code></pre>
+    </div>
+    <div class="command-step">
+      <h3>2. Inspect the package</h3>
+      <p>Shows the object type and execution dimensions before any paid inference.</p>
+      <dl class="args"><dt>jobs/personas.jobs.ep</dt><dd>The Jobs artifact to inspect.</dd></dl>
+      <div class="block-label">Command</div>
+      <pre><code>ep inspect jobs/personas.jobs.ep</code></pre>
+      <div class="block-label">Output</div>
+      <pre><code>{"status":"ok","data":{"object_type":"Jobs","length":1,"question_count":1,"question_names":["personas"],"agent_count":1,"scenario_count":1,"model_count":0},"warnings":[]}</code></pre>
+    </div>
+    <div class="command-step">
+      <h3>3. Estimate the run cost</h3>
+      <p>Asks Expected Parrot for the credit hold and approximate dollar cost.</p>
+      <dl class="args"><dt>jobs/personas.jobs.ep</dt><dd>The Jobs artifact whose execution cost should be estimated.</dd></dl>
+      <div class="block-label">Command</div>
+      <pre><code>ep jobs cost jobs/personas.jobs.ep</code></pre>
+      <div class="block-label">Output</div>
+      <pre><code>{"status":"ok","data":{"credits_hold":0.16,"usd":0.0016},"warnings":[]}</code></pre>
+    </div>
+    <div class="command-step">
+      <h3>4. Run the job</h3>
+      <p>Executes the packaged interviews. This is the paid, networked step and the model is chosen explicitly here.</p>
+      <dl class="args"><dt>jobs/personas.jobs.ep</dt><dd>The input Jobs package.</dd><dt>--model</dt><dd>The EDSL model name to use for every interview.</dd><dt>--output</dt><dd>Destination for the portable Results artifact.</dd></dl>
+      <div class="block-label">Command</div>
+      <pre><code>ep run jobs/personas.jobs.ep --model gpt-5-nano --output jobs/personas-results.ep</code></pre>
+      <div class="block-label">Output</div>
+      <pre><code>{"status":"ok","data":{"meta":{"model_count":1,"agent_count":1,"scenario_count":1,"result_count":1,"saved":{"path":"jobs/personas-results.ep","format":"ep","object_type":"Results"}}},"warnings":[]}</code></pre>
+    </div>
+    <div class="command-step">
+      <h3>5. Ingest the results</h3>
+      <p>Validates and normalizes the EDSL Results into Premortem’s project store.</p>
+      <dl class="args"><dt>personas</dt><dd>The result type and destination collection.</dd><dt>--from</dt><dd>The Results <code>.ep</code> artifact produced by <code>ep run</code>.</dd></dl>
+      <div class="block-label">Command</div>
+      <pre><code>premortem ingest personas --from jobs/personas-results.ep</code></pre>
+      <div class="block-label">Output</div>
+      <pre><code>{"schema_version":"1.0","ok":true,"data":{"created":5,"personas":[{"id":"p001","name":"Alex Kim","role":"IT Systems Administrator"}]},"warnings":[],"next_actions":[]}</code></pre>
+    </div>
     <div class="callout"><strong>Preserve both artifacts.</strong> The <code>*.jobs.ep</code> file records what was asked and of whom. The <code>*-results.ep</code> file records the returned answers and model provenance. Premortem state is updated only by the explicit ingest command.</div>
   </section>
 
@@ -178,9 +183,11 @@ premortem ingest personas --from jobs/personas-results.ep</code></pre>
       <tr><td>Avoids hedging.</td><td>Uses “might,” “could,” or “possibly.”</td></tr>
     </tbody></table>
     <div class="callout"><strong>Example.</strong> “It is six months after launch. Adoption remains below 10%, support costs have doubled, and three key customers have left.” The statement is vivid and measurable without claiming why it happened.</div>
+    <p><code>init</code> creates the project store. <code>--initiative</code> names the decision; <code>--failure</code> supplies the approved completed-fact outcome. Optional <code>--description</code> adds operating context and <code>--project-dir</code> overrides <code>.premortem/</code>.</p>
+    <div class="block-label">Command</div>
     <pre><code>premortem init --initiative "Product launch" \
   --failure "It is six months after launch. Adoption remains below 10%, support costs have doubled, and three key customers have left."</code></pre>
-    <p>The command returns the stored project record and a structured next action:</p>
+    <div class="block-label">Output</div>
     <pre><code>{
   "schema_version": "1.0",
   "ok": true,
@@ -207,20 +214,15 @@ premortem ingest personas --from jobs/personas-results.ep</code></pre>
     <h2><span class="chapter-number">03</span> Stakeholder personas</h2>
     <p>Create four to six perspectives whose incentives, access to information, and exposure to consequences differ. Useful roles often include the builder, buyer or user, operator, skeptic, and decision owner.</p>
     <p>Personas are analytic lenses, not decorative biographies. Each one should reveal failure mechanisms that another role may miss.</p>
-    <pre><code>premortem persona add --name customer_admin --role "Customer administrator"
-premortem persona add --name support_lead --role "Support lead"
-premortem persona add --name sales_owner --role "Enterprise sales owner"
-
-# Or package an EDSL job from project context:
-premortem job generate personas \
-  --context "B2B SaaS product-launch facilitator" \
-  --requirements "customer admin,end user,support lead,sales owner,engineering lead" \
-  --output jobs/personas.jobs.ep
-ep run jobs/personas.jobs.ep --model &lt;model-name&gt; \
-  --output jobs/personas-results.ep
-premortem ingest personas --from jobs/personas-results.ep
-premortem persona list</code></pre>
-    <p>A list command places the collection directly in <code>data</code>:</p>
+    <p><code>persona add</code> stores one manually authored lens. <code>--name</code> is its stable display name; <code>--role</code> states the institutional position; optional <code>--perspective</code> records incentives and information access.</p>
+    <div class="block-label">Command</div>
+    <pre><code>premortem persona add --name customer_admin --role "Customer administrator"</code></pre>
+    <div class="block-label">Output</div>
+    <pre><code>{"schema_version":"1.0","ok":true,"data":{"id":"p001","name":"customer_admin","role":"Customer administrator","perspective":null},"warnings":[],"next_actions":[]}</code></pre>
+    <p><code>persona list</code> takes no required arguments and returns every stored persona. Add <code>--human</code> for a Rich table.</p>
+    <div class="block-label">Command</div>
+    <pre><code>premortem persona list</code></pre>
+    <div class="block-label">Output</div>
     <pre><code>{
   "schema_version": "1.0",
   "ok": true,
@@ -245,15 +247,14 @@ premortem persona list</code></pre>
       <tr><td>Lack of alignment</td><td>Sales promises a migration path that engineering did not resource.</td></tr>
       <tr><td>Low adoption</td><td>Administrators cannot map existing permissions during onboarding and abandon setup.</td></tr>
     </tbody></table>
+    <p><code>job generate reasons</code> packages two questions—episodic chains and structural factors—for every stored persona. <code>--domain</code> supplies concrete systems and constraints; <code>--good-example</code> calibrates specificity; <code>--output</code> names the Jobs artifact.</p>
+    <div class="block-label">Command</div>
     <pre><code>premortem job generate reasons \
   --domain "permission model, migration tooling, support capacity, launch timeline" \
   --good-example "Administrators cannot map legacy custom roles during setup, so pilot accounts stall before inviting users." \
-  --output jobs/reasons.jobs.ep
-ep run jobs/reasons.jobs.ep --model &lt;model-name&gt; \
-  --output jobs/reasons-results.ep
-premortem ingest reasons --from jobs/reasons-results.ep
-premortem reason list
-premortem status</code></pre>
+  --output jobs/reasons.jobs.ep</code></pre>
+    <div class="block-label">Output</div>
+    <pre><code>{"schema_version":"1.0","ok":true,"data":{"object_type":"Jobs","phase":"reasons","output_path":"jobs/reasons.jobs.ep","expected_results_path":"jobs/reasons-results.ep","question_names":["episodic_reasons","structural_reasons"],"agent_count":5,"scenario_count":1,"model_count":0},"warnings":[]}</code></pre>
     <p>If the output reads like a generic risk register, regenerate with stronger domain context and one example at the desired level of specificity.</p>
   </section>
 
@@ -266,14 +267,25 @@ premortem status</code></pre>
       <div class="card"><h4>Terminal outcomes</h4><p>No outgoing edges. These connect directly to the approved failure statement.</p></div>
       <div class="card"><h4>Convergence points</h4><p>Nodes reached by multiple pathways. These are often high-leverage intervention targets.</p></div>
     </div>
-    <pre><code>premortem graph add-node \
-  --label "Permission migration blocks setup" --reason r001
-premortem graph add-node \
-  --label "Administrators abandon onboarding" --reason r002
-premortem graph add-edge --from n001 --to n002 \
-  --label "failed setup attempts"
-premortem graph list</code></pre>
-    <p>Graph output remains structured rather than embedding a rendered table:</p>
+    <p><code>graph add-node</code> stores one causal factor. <code>--label</code> states the mechanism; repeat <code>--reason</code> to attach the evidence records that support it.</p>
+    <div class="block-label">Command</div>
+    <pre><code>premortem graph add-node --label "Permission migration blocks setup" --reason r001</code></pre>
+    <div class="block-label">Output</div>
+    <pre><code>{"schema_version":"1.0","ok":true,"data":{"id":"n001","label":"Permission migration blocks setup","reason_ids":["r001"]},"warnings":[],"next_actions":[]}</code></pre>
+    <p>Run the same command for the downstream effect. Here <code>--label</code> names the effect and <code>--reason r002</code> links its supporting reason.</p>
+    <div class="block-label">Command</div>
+    <pre><code>premortem graph add-node --label "Administrators abandon onboarding" --reason r002</code></pre>
+    <div class="block-label">Output</div>
+    <pre><code>{"schema_version":"1.0","ok":true,"data":{"id":"n002","label":"Administrators abandon onboarding","reason_ids":["r002"]},"warnings":[],"next_actions":[]}</code></pre>
+    <p><code>graph add-edge</code> records direction and mechanism. <code>--from</code> is the cause node; <code>--to</code> is the effect node; <code>--label</code> explains how the cause produces the effect.</p>
+    <div class="block-label">Command</div>
+    <pre><code>premortem graph add-edge --from n001 --to n002 --label "failed setup attempts"</code></pre>
+    <div class="block-label">Output</div>
+    <pre><code>{"schema_version":"1.0","ok":true,"data":{"id":"e001","source":"n001","target":"n002","label":"failed setup attempts"},"warnings":[],"next_actions":[]}</code></pre>
+    <p><code>graph list</code> takes no required arguments and returns the complete node and edge collections.</p>
+    <div class="block-label">Command</div>
+    <pre><code>premortem graph list</code></pre>
+    <div class="block-label">Output</div>
     <pre><code>{
   "schema_version": "1.0",
   "ok": true,
@@ -302,31 +314,35 @@ premortem graph list</code></pre>
       <tr><td>Uncertainty</td><td>How unsure are we that the mechanism or condition is real?</td></tr>
       <tr><td>Evidence</td><td>What observations, records, or precedents support the assessment?</td></tr>
     </tbody></table>
-    <pre><code>premortem score set --node n001 --likelihood high --impact high
-premortem status</code></pre>
+    <p><code>score set</code> upserts one node score. <code>--node</code> identifies the graph node; <code>--likelihood</code> and <code>--impact</code> accept <code>low</code>, <code>medium</code>, or <code>high</code>; optional <code>--notes</code> records the basis.</p>
+    <div class="block-label">Command</div>
+    <pre><code>premortem score set --node n001 --likelihood high --impact high</code></pre>
+    <div class="block-label">Output</div>
+    <pre><code>{"schema_version":"1.0","ok":true,"data":{"node_id":"n001","likelihood":"high","impact":"high","notes":null},"warnings":[],"next_actions":[]}</code></pre>
   </section>
 
   <section id="mitigations">
     <h2><span class="chapter-number">07</span> Mitigations</h2>
     <p>Every mitigation should name the graph node it targets and specify who does what by when. Separate prevention, early detection, and response; they intervene at different points in the pathway.</p>
     <div class="callout"><strong>Concrete form.</strong> “Before the pilot begins, the customer-success lead will test permission migration with five existing administrators and publish the observed completion and abandonment rates.”</div>
+    <p><code>job generate mitigations</code> packages one interview per persona. <code>--good-example</code> demonstrates an owned, timed intervention; <code>--output</code> names the Jobs artifact. Optional <code>--bad-example</code> identifies language to reject.</p>
+    <div class="block-label">Command</div>
     <pre><code>premortem job generate mitigations \
   --good-example "Before the pilot, customer success tests role migration with five administrators and records completion and abandonment rates." \
-  --output jobs/mitigations.jobs.ep
-ep run jobs/mitigations.jobs.ep --model &lt;model-name&gt; \
-  --output jobs/mitigations-results.ep
-premortem ingest mitigations --from jobs/mitigations-results.ep
-premortem mitigate list</code></pre>
+  --output jobs/mitigations.jobs.ep</code></pre>
+    <div class="block-label">Output</div>
+    <pre><code>{"schema_version":"1.0","ok":true,"data":{"object_type":"Jobs","phase":"mitigations","output_path":"jobs/mitigations.jobs.ep","expected_results_path":"jobs/mitigations-results.ep","question_names":["mitigations"],"agent_count":5,"scenario_count":1,"model_count":0},"warnings":[]}</code></pre>
     <p>A mitigation with no graph target is probably too broad. Map it to a mechanism or treat it as a weak recommendation requiring revision.</p>
   </section>
 
   <section id="research">
     <h2><span class="chapter-number">08</span> Research agenda</h2>
     <p>Not every uncertainty should become an action item. Research is valuable when an assumption is important, uncertain, and testable before the decision. A useful research question identifies the evidence that would update the recommendation.</p>
-    <pre><code>premortem job generate research-agenda --output jobs/research-agenda.jobs.ep
-ep run jobs/research-agenda.jobs.ep --model &lt;model-name&gt; \
-  --output jobs/research-agenda-results.ep
-premortem ingest research-agenda --from jobs/research-agenda-results.ep</code></pre>
+    <p><code>job generate research-agenda</code> packages unresolved graph assumptions for every persona. <code>--output</code> chooses the Jobs artifact path; project state supplies the personas, reasons, and graph.</p>
+    <div class="block-label">Command</div>
+    <pre><code>premortem job generate research-agenda --output jobs/research-agenda.jobs.ep</code></pre>
+    <div class="block-label">Output</div>
+    <pre><code>{"schema_version":"1.0","ok":true,"data":{"object_type":"Jobs","phase":"research_agenda","output_path":"jobs/research-agenda.jobs.ep","expected_results_path":"jobs/research-agenda-results.ep","question_names":["research_agenda"],"agent_count":5,"scenario_count":1,"model_count":0},"warnings":[]}</code></pre>
     <table><thead><tr><th>Question</th><th>Decision relevance</th><th>Evidence</th></tr></thead><tbody>
       <tr><td>Can current administrators complete permission migration unaided?</td><td>Determines whether self-serve onboarding is viable.</td><td>Observed completion rate and failure points in five moderated tests.</td></tr>
       <tr><td>Does the proposed workflow increase support burden?</td><td>Determines staffing and rollout pace.</td><td>Tickets per pilot account compared with the current product.</td></tr>
@@ -336,13 +352,15 @@ premortem ingest research-agenda --from jobs/research-agenda-results.ep</code></
   <section id="reporting">
     <h2><span class="chapter-number">09</span> Reporting</h2>
     <p>The final report should lead with the recommendation, then show the failure definition, stakeholder lenses, causal pathways, prioritized mitigations, and highest-leverage research. Preserve provenance so readers can distinguish user input, generated material, analyst synthesis, and evidence.</p>
-    <pre><code>premortem job generate summary --output jobs/summary.jobs.ep
-ep run jobs/summary.jobs.ep --model &lt;model-name&gt; \
-  --output jobs/summary-results.ep
-premortem ingest summary --from jobs/summary-results.ep
-premortem report generate
-premortem agent-end</code></pre>
-    <p>Artifact-producing commands return the path and useful counts in <code>data</code>:</p>
+    <p><code>job generate summary</code> packages a single synthesis interview. <code>--output</code> names the Jobs artifact; the project’s personas, reasons, graph, and failure statement become its scenario.</p>
+    <div class="block-label">Command</div>
+    <pre><code>premortem job generate summary --output jobs/summary.jobs.ep</code></pre>
+    <div class="block-label">Output</div>
+    <pre><code>{"schema_version":"1.0","ok":true,"data":{"object_type":"Jobs","phase":"executive_summary","output_path":"jobs/summary.jobs.ep","expected_results_path":"jobs/summary-results.ep","question_names":["executive_summary"],"agent_count":1,"scenario_count":1,"model_count":0},"warnings":[]}</code></pre>
+    <p><code>analyze report</code> renders the standalone HTML report without making a model call. <code>--output</code> sets the file name inside <code>.premortem/output/</code>.</p>
+    <div class="block-label">Command</div>
+    <pre><code>premortem analyze report --output report.html</code></pre>
+    <div class="block-label">Output</div>
     <pre><code>{
   "schema_version": "1.0",
   "ok": true,
@@ -363,46 +381,16 @@ premortem agent-end</code></pre>
 
   <section id="quickstart">
     <h2><span class="chapter-number">10</span> Canonical command sequence</h2>
-    <pre><code># Install locally
-python -m pip install -e .
-
-# Initialize only after the failure statement is approved
-premortem init --initiative "Product launch" \
-  --failure "It is six months after launch. Adoption is below 10%."
-
-# Generate, inspect, and advance through the workflow
-premortem job generate personas \
-  --context "B2B SaaS product-launch facilitator" \
-  --requirements "customer admin,end user,support,sales,engineering" \
-  --output jobs/personas.jobs.ep
-ep run jobs/personas.jobs.ep --model &lt;model-name&gt; --output jobs/personas-results.ep
-premortem ingest personas --from jobs/personas-results.ep
-premortem job generate reasons \
-  --domain "permissions, migration, support, sales commitments" \
-  --good-example "Administrators cannot map legacy custom roles, so pilot accounts stall before inviting users." \
-  --output jobs/reasons.jobs.ep
-ep run jobs/reasons.jobs.ep --model &lt;model-name&gt; --output jobs/reasons-results.ep
-premortem ingest reasons --from jobs/reasons-results.ep
-premortem graph add-node --label "A concrete cause" --reason r001
-premortem graph add-node --label "A downstream effect" --reason r002
-premortem graph add-edge --from n001 --to n002 --label "causal mechanism"
-premortem score set --node n001 --likelihood high --impact high
-premortem job generate mitigations \
-  --good-example "Before the pilot, customer success tests role migration with five administrators." \
-  --output jobs/mitigations.jobs.ep
-ep run jobs/mitigations.jobs.ep --model &lt;model-name&gt; --output jobs/mitigations-results.ep
-premortem ingest mitigations --from jobs/mitigations-results.ep
-premortem job generate research-agenda --output jobs/research-agenda.jobs.ep
-ep run jobs/research-agenda.jobs.ep --model &lt;model-name&gt; --output jobs/research-agenda-results.ep
-premortem ingest research-agenda --from jobs/research-agenda-results.ep
-premortem job generate summary --output jobs/summary.jobs.ep
-ep run jobs/summary.jobs.ep --model &lt;model-name&gt; --output jobs/summary-results.ep
-premortem ingest summary --from jobs/summary-results.ep
-premortem report generate
-
-# Check state whenever resuming
-premortem status
-premortem workflow</code></pre>
+    <p>Follow the numbered chapters in order. For each AI phase, repeat the five-command lifecycle shown in <a href="#edsl-jobs">EDSL Jobs workflow</a>: build, inspect, estimate, run, and ingest. Each command above is isolated with its arguments and output so it can be copied and verified independently.</p>
+    <ol>
+      <li>Initialize after approving the failure statement.</li>
+      <li>Build, run, ingest, and review personas.</li>
+      <li>Build, run, ingest, and review failure reasons.</li>
+      <li>Synthesize nodes and edges manually; then score important nodes.</li>
+      <li>Build, run, and ingest mitigations.</li>
+      <li>Build, run, and ingest the research agenda and summary.</li>
+      <li>Render the report and hand off the decision.</li>
+    </ol>
     <div class="callout"><strong>Use the CLI as the source of truth.</strong> Project state lives in <code>.premortem/</code>. Do not edit its JSON files directly; use commands so validation and workflow state remain consistent.</div>
   </section>
 
